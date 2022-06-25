@@ -7,6 +7,7 @@ import json
 import yaml
 import rich
 import zipfile
+import sqlite3
 
 from datetime import datetime
 from importlib import reload
@@ -42,6 +43,8 @@ mdirname = lambda path : os.path.dirname(path)
 
 mismodules = sys.modules
 
+mutcnow = lambda : datetime.utcnow()
+
 def mpause(text):
     print(text)
     sys.stdin.readline(1)
@@ -64,7 +67,7 @@ class mdeque(object):
     
 
 
-def mjoin(data: "list | mdeque | str", string: str=' ', **kargs) -> 'str|list':
+def mjoin(__string: "list | mdeque | str", __iterable: str=' ', **kargs) -> 'str|list':
     """
     - prefix = ' '
     - next = `False|True`\n
@@ -78,11 +81,11 @@ def mjoin(data: "list | mdeque | str", string: str=' ', **kargs) -> 'str|list':
         next = True
 
     mess:list = []
-    if isinstance(data, str):
-        mess.append( str("{2}{0}{1}{0}".format(prefix, data, '')) )
+    if isinstance(__string, str):
+        mess.append( str("{2}{0}{1}{0}".format(prefix, __string, '')) )
     else:
-        for num, x in enumerate(data if isinstance(data, list) else data.converct() ):
-            mess.append( str("{2}{0}{1}{0}".format(prefix, x, string if num != 0 else '')) )
+        for num, x in enumerate(__string if isinstance(__string, list) else __string.converct() ):
+            mess.append( str("{2}{0}{1}{0}".format(prefix, x, __iterable if num != 0 else '')) )
     if next:
         return iter(mess)
     else:
@@ -194,6 +197,13 @@ def loadall_yaml(derictory: str) -> 'dict | None':
     else:
         return None
 
+from sqlite3.dbapi2 import Connection, Error
+
+def connectdb(__path:str) -> 'None | Connection':
+    try:
+        return sqlite3.connect(__path)
+    except Error:
+        return None
 def listtostr(data: list) -> str:
     line = ''
     for x in data:
