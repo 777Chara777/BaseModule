@@ -321,7 +321,7 @@ class LogError_V2:
 
     class logger:
         def __init__(self, FileName: str=None, languagemodule: str='eng', format:str='', \
-             color: bool=False, messagelavel: 'LogError_V2.ErrorClass.TypesList' = None ) -> None:
+            color: bool=False, messagelavel: 'LogError_V2.ErrorClass.TypesList' = None ) -> None:
             """
             #### Init commands Logger:
             LanguageModule: `rus|eng`
@@ -347,7 +347,7 @@ class LogError_V2:
                 'ERROR': self.LanguageModule['PrefixLog']['ERROR'],
                 'CRITICAL': self.LanguageModule['PrefixLog']['CRITICAL'],
             }
-            self.defautlevel = LogError_V2.TypesList["WARNING"] if messagelavel is None else messagelavel
+            self.defautlevel = int(LogError_V2.TypesList["WARNING"]) if messagelavel is None else int(messagelavel)
             
             self.LanguageModule = self.langmodule(languagemodule)
 
@@ -414,8 +414,7 @@ class LogError_V2:
             returnon = False
 
             mprint = print if not self.TypeColor else rich.print
-
-            if level >= self.defautlevel:
+            if int(level) >= int(self.defautlevel):
                 listargs = ['--noprint', '--onreture']
                 listkargs = ['format']
                 if '--noprint' in args:
@@ -494,8 +493,8 @@ class LogError_V2:
         def __init__(self, file, languagemodule:str, format:str, color:bool, *args, **kargs) -> None:
             super().__init__(None)
             LogError_V2.logger.__init__(self, None)
+            self.lastdefautlevel = self.defautlevel
             self.defautlevel = LogError_V2.TypesList['DEBUG']
-            # self.savefile = file
             self.args = args
             self.kargs = kargs
             self.filename = file
@@ -505,26 +504,36 @@ class LogError_V2:
 
         def debug(self, msg, *args, **kargs):
             # self.savefile.write(str(super().debug(msg, '--onreture', *args, **kargs))+'\n')
+            if self.lastdefautlevel > self.defautlevel:
+                args += ('--noprint',)
             with open(self.filename, mode=self.kargs['mode'], encoding=self.kargs['encoding']) as savefile:
                 savefile.write(str(super().debug(msg, '--onreture', *args, **kargs))+'\n')
 
         def info(self, msg, *args, **kargs):
             # self.savefile.write(str(super().info(msg, '--onreture', *args, **kargs))+'\n')
+            if self.lastdefautlevel > self.defautlevel:
+                args += ('--noprint',)
             with open(self.filename, mode=self.kargs['mode'], encoding=self.kargs['encoding']) as savefile:
                 savefile.write(str(super().info(msg, '--onreture', *args, **kargs))+'\n')
 
         def warn(self, msg, *args, **kargs):
             # self.savefile.write(str(super().warn(msg, '--onreture', *args, **kargs))+'\n')
+            if self.lastdefautlevel > self.defautlevel:
+                args += ('--noprint',)
             with open(self.filename, mode=self.kargs['mode'], encoding=self.kargs['encoding']) as savefile:
                 savefile.write(str(super().warn(msg, '--onreture', *args, **kargs))+'\n')
 
         def error(self, msg, *args, **kargs):
             # self.savefile.write(str(super().error(msg, '--onreture', *args, **kargs))+'\n')
+            if self.lastdefautlevel > self.defautlevel:
+                args += ('--noprint',)
             with open(self.filename, mode=self.kargs['mode'], encoding=self.kargs['encoding']) as savefile:
                 savefile.write(str(super().error(msg, '--onreture', *args, **kargs))+'\n')
         
         def crit(self, msg, *args, **kargs):
             # self.savefile.write(str(super().crit(msg, '--onreture', *args, **kargs))+'\n')
+            if self.lastdefautlevel > self.defautlevel:
+                args += ('--noprint',)
             with open(self.filename) as savefile:
                 savefile.write(str(super().crit(msg, '--onreture', *args, **kargs))+'\n')
         
