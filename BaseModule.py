@@ -166,6 +166,7 @@ def get_size(start_path = '.'):
 
 def getlist_size(size_: str):
     "Get list ['bytes', 'KB', 'MB', 'GB', 'TB'] -> [0, 1, 2, 3, 4]"
+    return ['bytes', 'KB', 'MB', 'GB', 'TB'].index(size_)
 
 def file_size(file_path):
     """getting file weight
