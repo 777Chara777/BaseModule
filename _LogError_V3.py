@@ -3,6 +3,7 @@ from .LOGERRORV3 import _dop as dp
 from . import BaseModule as bm
 from . import _TypesList as tl
 
+from zipfile import ZipFile
 
 
 import functools
@@ -33,6 +34,7 @@ class Core:
             "defautformat": '{time3} | {level}\t | {function} - {message}',
             "dir_file_save": None,
             "color": False,
+            "maxfilesize": "100 KB"
         }
 
         self.handlers: dict = {}
@@ -45,31 +47,30 @@ class LogError_V3():
     def __repr__(self) -> str:
         return "<BaseModule._LogError_V3 handlers=%r>" % list(self._core.handlers.values())
 
-    def add(self, __file: None, __format: None, __color: False, __defautlevel="INFO"): 
-        if __file is not None:
-            self.setfile(__file)
+    def add(self, file = None, format = None, color = False, defautlevel = "INFO", maxfilesize = "100 KB"): 
+        if file is not None:
+            self.setfile(file)
         
-        if __format is not None:
-            self.setformat(__format)
+        if format is not None:
+            self.setformat(format)
         
-        if __color is not self._core.options["color"]:
-            self.setcolor(__color)
+        if color is not self._core.options["color"]:
+            self.setcolor(color)
         
-        if __file is not self._core.options["defautlevel"]:
-            self.setlevel(__defautlevel)
+        if file is not self._core.options["defautlevel"]:
+            self.setlevel(defautlevel)
 
     def setcolor(self, __color):
         if isinstance(__color, bool):
             self._core.options["color"] = __color
     
     def setformat(self, __format: str):
-        if isinstance(__format, int):
+        if isinstance(__format, str):
             self._core.options["defautformat"] = __format
         
     def setfile(self, __file: str):
         if bm.misfile(__file):
             self._core.options["dir_file_save"] = __file
-
         else:
             raise Exception("File not found at given path '%s'" % __file)
 
@@ -83,8 +84,16 @@ class LogError_V3():
         """Logger foramt message and save to file"""
 
         def savefile(msg):
-            if self._core.options["dir_file_save"] is not None:
-                with open(self._core.options["dir_file_save"], 'a+', encoding='utf-8') as file:
+            if __options["dir_file_save"] is not None:
+                int_number_type: int = bm.getlist_size(str(__options["maxfilesize"]).split(" ")[1])
+                number, _, _ = bm.file_size(__options["dir_file_save"])
+                name = str(__options["dir_file_save"]).split("/")[-1]
+                if int_number_type < number:
+                    with ZipFile(f"{bm.Time(6)}-{name}.zip", "w") as newzip:
+                        newzip.write(__options["dir_file_save"])
+                    open(__options["dir_file_save"], 'w')
+
+                with open(__options["dir_file_save"], 'a+', encoding='utf-8') as file:
                     file.write(f"{msg}\n")
 
         def format_message(__foramt: str, _message, level):

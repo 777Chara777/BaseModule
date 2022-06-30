@@ -164,14 +164,16 @@ def get_size(start_path = '.'):
             total_size += os.path.getsize(fp)
     return convert_bytes(total_size)
 
+def getlist_size(size_: str):
+    "Get list ['bytes', 'KB', 'MB', 'GB', 'TB'] -> [0, 1, 2, 3, 4]"
+
 def file_size(file_path):
     """getting file weight
-    * getting the weight of the form [0-4, weight]"""
+    * getting the weight of the form [0-4, bytes-TB, weight]"""
     def convert_bytes(num):
-        # for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
         for x in [0, 1, 2, 3, 4]:
             if num < 1024.0:
-                return [x, num]
+                return (x, ['bytes', 'KB', 'MB', 'GB', 'TB'][x], num)
                 # return "%s" % (x)
             num /= 1024.0
     if os.path.isfile(file_path):
