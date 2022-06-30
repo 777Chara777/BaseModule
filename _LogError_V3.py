@@ -4,8 +4,10 @@ from . import BaseModule as bm
 from . import _TypesList as tl
 
 
+
 import functools
 import traceback
+import inspect
 import rich
 
 import sys
@@ -41,6 +43,8 @@ class LogError_V3():
 
     def __repr__(self) -> str:
         return "<BaseModule._LogError_V3 handlers=%r>" % list(self._core.handlers.values())
+
+    def add(self, __file, __format, __color): pass
 
     def setcolor(self, __color):
         if isinstance(__color, bool):
@@ -132,14 +136,15 @@ class LogError_V3():
     def catch(
         self,
         reverse = False,
-        onerror = "An error has occurred: '{error}'",
+        onerror = None,
+        message = "An error has occurred: ",
         level = "ERROR" ):
 
-        def format_onerror(message, error_message):
-            if dp.findmessage(message, "{error}"):
-                message = message.replace("{error}", error_message)
+        # def format_message(message, error_message):
+        #     if dp.findmessage(message, "{error}"):
+        #         message = message.replace("{error}", error_message)
 
-            return message
+        #     return message
 
 
         class Catcher:
@@ -164,7 +169,8 @@ class LogError_V3():
                 options_depth = self._core.options.copy()
                 options_depth['depth'] += 1
 
-                self._log(level, options_depth, format_onerror(onerror, str(value_)) )
+                # self._log(level, options_depth, format_message(message, str(value_)) )
+                self._log(level, options_depth, message)
 
 
                 self._log(level, options_depth, hadler, '--noprefix')
@@ -174,15 +180,25 @@ class LogError_V3():
                 
                 self._log(level, options_depth, name_error, '--noprefix')
 
+                if onerror is not None:
+                    onerror(value_)
 
                 return not reverse
 
             def __call__(_, function):
                 catch = Catcher(True)
+                
+                if inspect.iscoroutinefunction(function):
 
-                def catch_wrapper(*args, **kwargs):
-                    with catch:
-                        return function(*args, **kwargs)
+                    async def catch_wrapper(*args, **kwargs):
+                        with catch:
+                            return await function(*args, **kwargs)
+                        return default
+                
+                else:
+                    def catch_wrapper(*args, **kwargs):
+                        with catch:
+                            return function(*args, **kwargs)
 
                 functools.update_wrapper(catch_wrapper, function)
                 return catch_wrapper
