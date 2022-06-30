@@ -85,6 +85,7 @@ class LogError_V3():
 
         def savefile(msg):
             if __options["dir_file_save"] is not None:
+                
                 int_number_type: int = bm.getlist_size(str(__options["maxfilesize"]).split(" ")[1])
                 number, _, _ = bm.file_size(__options["dir_file_save"])
                 name = str(__options["dir_file_save"]).split("/")[-1]
