@@ -226,6 +226,19 @@ def loadall_json(derictory: str) -> 'dict | None':
     else:
         return None
 
+class loadall_json2:
+    def __init__(self, path: str) -> None:
+        if not misfile(path):
+            return
+        self.filepath = path
+
+    def __enter__(self):
+        self.data = loadall_json(self.filepath)
+        return self.data
+        
+    def __exit__(self, type_, value_, traceback_):
+        input_json(self.filepath, self.data)
+
 def input_yaml(derictory: str, data: dict) -> 'bool':
     """loading dist file to yaml/yml"""
     if isinstance(data, dict) and derictory.split('/')[-1].split('.')[-1] in ['yml', 'yaml']:
