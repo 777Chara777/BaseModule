@@ -102,7 +102,7 @@ class LogError_V3():
             else:
                 message = __message
             
-        if '--noprint' not in args and TypesLevels[__level] > TypesLevels[__options["defautlevel"]]:
+        if '--noprint' not in args and TypesLevels[__level] >= TypesLevels[__options["defautlevel"]]:
             send_message = print if __options["color"] is False else rich.print
             send_message(message)
         
