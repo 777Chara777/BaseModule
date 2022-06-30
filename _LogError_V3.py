@@ -41,6 +41,8 @@ class LogError_V3():
     def __init__(self):
         self._core = Core()
 
+        self.debug(f"Inti module LogError_V3 {__version}-{_startTime}")
+
     def __repr__(self) -> str:
         return "<BaseModule._LogError_V3 handlers=%r>" % list(self._core.handlers.values())
 
@@ -72,7 +74,7 @@ class LogError_V3():
 
         def savefile(msg):
             if self._core.options["dir_file_save"] is not None:
-                with open(self._core.options["dir_file_save"], 'a+') as file:
+                with open(self._core.options["dir_file_save"], 'a+', encoding='utf-8') as file:
                     file.write(f"{msg}\n")
 
         def format_message(__foramt: str, _message, level):
@@ -135,16 +137,16 @@ class LogError_V3():
 
     def catch(
         self,
+        exception=Exception, *,
+        level = "ERROR" ,
         reverse = False,
         onerror = None,
-        message = "An error has occurred: ",
-        level = "ERROR" ):
+        message = "An error has occurred"):
 
-        # def format_message(message, error_message):
-        #     if dp.findmessage(message, "{error}"):
-        #         message = message.replace("{error}", error_message)
-
-        #     return message
+        if callable(exception) and (
+            not inspect.isclass(exception) or not issubclass(exception, BaseException)
+        ):
+            return self.catch()(exception)
 
 
         class Catcher:
@@ -169,7 +171,6 @@ class LogError_V3():
                 options_depth = self._core.options.copy()
                 options_depth['depth'] += 1
 
-                # self._log(level, options_depth, format_message(message, str(value_)) )
                 self._log(level, options_depth, message)
 
 
@@ -193,7 +194,6 @@ class LogError_V3():
                     async def catch_wrapper(*args, **kwargs):
                         with catch:
                             return await function(*args, **kwargs)
-                        return default
                 
                 else:
                     def catch_wrapper(*args, **kwargs):
