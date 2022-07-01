@@ -1,4 +1,6 @@
+from types import TracebackType
 from .LOGERRORV3 import _dop as dp
+from .LOGERRORV3 import _trackback as tb
 
 from . import BaseModule as bm
 from . import _TypesList as tl
@@ -176,7 +178,7 @@ class LogError_V3():
             def __enter__(self_):
                 return None
             
-            def __exit__(self_, type_, value_, traceback_):
+            def __exit__(self_, type_, value_, traceback_: TracebackType):
                 
                 if type_ is None:
                     return
@@ -184,22 +186,18 @@ class LogError_V3():
                 if not self_._decorator_type:
                     return
 
-                traceback_request = traceback.format_exception( *sys.exc_info() )
-
-                hadler, name_error, traceback_errors = dp._process_traceback(traceback_request)
+                traceback_request = tb._format_traceback( traceback_ ) 
 
                 options_depth = self._core.options.copy()
                 options_depth['depth'] += 1
 
-                self._log(level, options_depth, message)
+                traceba = ""
+                for t in traceback_request['Lists_tb']:
+                    traceba += f"{t}\n\n"
 
+                tracebacks_text = f"{message}\n{traceback_request['Hadler_tb']}\n\n{traceba}{traceback_request['ErrorName_tb']}"
 
-                self._log(level, options_depth, hadler, '--noprefix')
-
-                for num, x in enumerate( range(0, len(traceback_errors), 2) ):
-                    self._log(level, options_depth, f"{num+1} {traceback_errors[x]}\n\t{traceback_errors[x+1]}\n", '--noprefix')
-                
-                self._log(level, options_depth, name_error, '--noprefix')
+                self._log(level, options_depth, tracebacks_text)
 
                 if onerror is not None:
                     onerror(value_)

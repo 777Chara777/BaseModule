@@ -23,17 +23,15 @@ def _getframe(depth, number=0):
 
     return (name, code.co_name, frame.f_lineno) 
 
-def _process_traceback(data: str) -> tuple:
-    traceback_list = []
+# def _process_traceback(data: str) -> tuple:
+#     traceback_list = []
 
-    for x in [x.replace("\n", '').split('  ') for x in data]:
-        for text in x:
-            if text != '':
-                traceback_list.append(text)
+#     for x in [x.replace("\n", '').split('  ') for x in data]:
+#         for text in x:
+#             if text != '':
+#                 traceback_list.append(text)
 
+#     traceback_message = traceback_list.pop(0)
+#     error_raise = traceback_list.pop(-1)
 
-
-    traceback_message = traceback_list.pop(0)
-    error_raise = traceback_list.pop(-1)
-
-    return (traceback_message, error_raise, traceback_list)
+#     return (traceback_message, error_raise, traceback_list)
