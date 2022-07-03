@@ -208,10 +208,14 @@ class LogError_V3():
                 catch = Catcher(True)
                 
                 if inspect.iscoroutinefunction(function):
-
                     async def catch_wrapper(*args, **kwargs):
                         with catch:
                             return await function(*args, **kwargs)
+                
+                elif inspect.isgeneratorfunction(function):
+                    def catch_wrapper(*args, **kwargs):
+                        with catch:
+                            return (yield from function(*args, **kwargs))
                 
                 else:
                     def catch_wrapper(*args, **kwargs):
@@ -219,7 +223,6 @@ class LogError_V3():
                             return function(*args, **kwargs)
 
                 self._core.handlers[str(len(self._core.handlers)-1)] = function
-
                 functools.update_wrapper(catch_wrapper, function)
                 return catch_wrapper
         
