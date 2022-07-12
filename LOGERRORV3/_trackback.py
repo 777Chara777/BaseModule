@@ -57,8 +57,11 @@ def get_traceback_information(tb) -> dict:
         source = source.strip()
     
 
-    tree = ast.parse(source, mode='exec')
-    relevant_values = get_relevant_values(tb.tb_frame, tree)
+    try:
+        tree = ast.parse(source, mode='exec')
+        relevant_values = get_relevant_values(tb.tb_frame, tree)
+    except SyntaxError:
+        relevant_values = []
 
     return {
         "FilePath": filename,
@@ -114,9 +117,9 @@ def _format_traceback(traceback: TracebackType=None, **kargs) -> dict:
         "ErrorName_tb": kargs["value"]
     }   
 
-    number = 1
+    number = 0
     while traceback:
-        format_traceback["Lists_tb"].append( format_traceback_frame ( get_traceback_information(traceback), number ) )
+        if number != 0: format_traceback["Lists_tb"].append( format_traceback_frame ( get_traceback_information(traceback), number ) )
         
         number+=1
         traceback = traceback.tb_next
