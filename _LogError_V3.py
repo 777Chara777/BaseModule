@@ -114,7 +114,7 @@ class LogError_V3():
                 __foramt = __foramt.replace("{function}", text)
 
             if dp.findmessage(__foramt, "{message}"): 
-                __foramt = __foramt.replace("{message}", _message)
+                __foramt = __foramt.replace("{message}", str(_message))
 
 
             return __foramt
