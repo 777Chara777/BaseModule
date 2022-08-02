@@ -2,6 +2,7 @@
 
 import os
 import sys
+import asyncio
 
 import json
 import yaml
@@ -83,6 +84,15 @@ mdirname = lambda path : os.path.dirname(path)
 mismodules = sys.modules
 
 mutcnow = lambda : datetime.utcnow()
+
+def mlistdir2(path: str, end_swich: str=None) -> "list | str":
+    list_files: list=[]
+    if misfile(path):
+        for file in os.listdir(path):
+            if file.endswith(end_swich) or end_swich is None:
+                list_files.append(file)
+    else:
+        return f"Not find path: {path}"
 
 def mpause(text: str):
     """pause"""
@@ -229,9 +239,12 @@ def input_json(derictory: str, data: dict) -> 'bool':
 def loadall_json(derictory: str) -> 'dict | None':
     """Getting the entire json file as a dict"""
     if misfile(derictory):
-        with open(derictory, encoding="utf-8") as config_file:
-            data = json.load(config_file)
-        return data
+        try:
+            with open(derictory, encoding="utf-8") as config_file:
+                data = json.load(config_file)
+            return data
+        except Exception as ex:
+            return (None, str(ex))
     else:
         return None
 
@@ -260,9 +273,12 @@ def input_yaml(derictory: str, data: dict) -> 'bool':
 def loadall_yaml(derictory: str) -> 'dict | None':
     """Getting the entire yaml/yml file as a dict"""
     if misfile(derictory):
-        with open(derictory, encoding="utf-8") as config_file:
-            data = yaml.load(config_file, Loader=yaml.FullLoader)
-        return data
+        try:
+            with open(derictory, encoding="utf-8") as config_file:
+                data = yaml.load(config_file, Loader=yaml.FullLoader)
+            return data
+        except Exception as ex:
+            return (None, str(ex))
     else:
         return None
 
@@ -326,10 +342,9 @@ def zipencore(oldfile:str, filename: str) -> 'bool | None':
             with zipfile.ZipFile(filename, 'w') as zipsave:
                 zipsave.write(oldfile)
             return True
-        except:
-            return False
+        except Exception as ex:
+            return (False, ex)
     return None
-
 def trackback_format(tb: TracebackType) -> dict:
     def traceback_get_info(tb) -> dict:
 
@@ -446,3 +461,23 @@ def trackback_format(tb: TracebackType) -> dict:
     return format_traceback
 
 
+class AsyncLock:
+    def __init__(self) -> None:
+        self.locker = asyncio.Lock()
+    
+    async def release(self) -> None:
+        """open the lock"""
+        self.locker.release()
+    
+    async def acquire(self) -> None:
+        """close the lock"""
+        await self.locker.acquire()
+    
+    async def loadjson(self, path: str) -> dict:
+        await self.acquire()
+        return loadall_json(path)
+    
+    async def inputjson(self, path: str, db:dict) -> None:
+        input_json(path, db)
+        await self.release()
+        

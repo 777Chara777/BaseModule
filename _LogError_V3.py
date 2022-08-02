@@ -7,13 +7,11 @@ from . import _TypesList as tl
 
 from zipfile import ZipFile
 
+import asyncio
 
 import functools
-import traceback
 import inspect
 import rich
-
-import sys
 
 
 TypesLevels = {
@@ -25,7 +23,7 @@ TypesLevels = {
 }
 
 import time
-_version = '3.0.1'
+_version = '3.1.2'
 _startTime = time.time()
 
 class Core:
@@ -40,10 +38,14 @@ class Core:
         }
 
         self.handlers: dict = {}
-
+    
+    def __repr__(self) -> str:
+        return f"<BaseModule._LogError_V3.Core {self.options}>"
+        
 class LogError_V3():
     def __init__(self):
         self._core = Core()
+        self.eventloop = asyncio.get_event_loop()
 
 
     def __repr__(self) -> str:
@@ -98,6 +100,7 @@ class LogError_V3():
 
                 with open(__options["dir_file_save"], 'a+', encoding='utf-8') as file:
                     file.write(f"{msg}\n")
+
 
         def format_message(__foramt: str, _message, level):
             """Foramt message"""
@@ -230,3 +233,4 @@ class LogError_V3():
         return Catcher(False)
 
 logerror = LogError_V3()
+
