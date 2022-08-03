@@ -13,7 +13,7 @@ def findmessage_2(mesasge: str, __findtext: str) -> "int | bool":
 
 
 def _getframe(depth, number=0):
-    frame = get_frame(depth + (10 + number))
+    frame = get_frame(depth + (4 + number))
     code = frame.f_code
 
     try:
