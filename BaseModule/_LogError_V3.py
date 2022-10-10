@@ -67,7 +67,7 @@ class LogError_V3():
         if file is not self._core.options["defautlevel"]:
             self.setlevel(defautlevel)
 
-    def setcolor(self, __color):
+    def setcolor(self, __color: bool):
         if isinstance(__color, bool):
             self._core.options["color"] = __color
     
@@ -87,6 +87,7 @@ class LogError_V3():
             self._core.options["defautlevel"] = __level
 
     def savelog(self):
+        "save log file in .zip"
         file = self._core.options["dir_file_save"]
         name = str(file).split("/")[-1]
         with ZipFile(f"{file.replace(f'/{name}', '')}/{bm.Time(6)}-{name}.zip", "w") as newzip:
@@ -172,16 +173,16 @@ class LogError_V3():
 
     def catch(
         self,
-        exception=Exception, *,
+        _exception=Exception, *,
         level = "ERROR" ,
         reverse = False,
         onerror = None,
         message = "An error has occurred"):
 
-        if callable(exception) and (
-            not inspect.isclass(exception) or not issubclass(exception, BaseException)
+        if callable(_exception) and (
+            not inspect.isclass(_exception) or not issubclass(_exception, BaseException)
         ):
-            return self.catch()(exception)
+            return self.catch()(_exception)
 
 
         class Catcher:
