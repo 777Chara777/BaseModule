@@ -30,7 +30,7 @@ logger.add( file="logfile.log", format="{time3} | {level}\t | {function} - {mess
 
 logger.savelog() # -> convert logfile in zip
 
-logger.info(message="test :)") # -> send 00-00-0000 00:00:00 | INFO\t | __main__.info - test :)"
+logger.info(message="test :)") # -> send "00-00-0000 00:00:00 | INFO\t | __main__:<module>:1 - test :)"
 
 
 @logger.catch
