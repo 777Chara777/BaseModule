@@ -45,7 +45,10 @@ class Core:
 class LogError_V3():
     def __init__(self):
         self._core = Core()
+        self.loop = bm.AsyncLock()
         self.eventloop = asyncio.get_event_loop()
+
+        self.addloop = lambda func : self.eventloop.create_task(func)
 
 
     def __repr__(self) -> str:
@@ -83,11 +86,18 @@ class LogError_V3():
         if __level in TypesLevels:
             self._core.options["defautlevel"] = __level
 
+    def savelog(self):
+        file = self._core.options["dir_file_save"]
+        name = str(file).split("/")[-1]
+        with ZipFile(f"{file.replace(f'/{name}', '')}/{bm.Time(6)}-{name}.zip", "w") as newzip:
+            newzip.write(file)
+        open(file, 'w')
 
-    def _log(self, __level, __options, __message, *args, **kargs) -> None:
+    async def _log(self, __level, __options, __message, *args, **kargs) -> None:
         """Logger foramt message and save to file"""
 
-        def savefile(msg):
+        async def savefile(msg):
+            await self.loop.acquire()
             if __options["dir_file_save"] is not None:
                 
                 int_number_type: int = bm.getlist_size(str(__options["maxfilesize"]).split(" ")[1])
@@ -100,7 +110,7 @@ class LogError_V3():
 
                 with open(__options["dir_file_save"], 'a+', encoding='utf-8') as file:
                     file.write(f"{msg}\n")
-
+            await self.loop.release()
 
         def format_message(__foramt: str, _message, level):
             """Foramt message"""
@@ -137,27 +147,27 @@ class LogError_V3():
             send_message = print if __options["color"] is False else rich.print
             send_message(message)
         
-        if '--nosave' not in args and __options["dir_file_save"] is not None: savefile(message)
+        if '--nosave' not in args and __options["dir_file_save"] is not None: await savefile(message)
             
 
 
     def debug(self, message, *args, **kargs) -> None:
-        self._log("DEBUG", self._core.options, message, *args, **kargs)
+        self.addloop( self._log("DEBUG", self._core.options, message, *args, **kargs) )
     
     def info(self, message, *args, **kargs) -> None:
-        self._log("INFO", self._core.options, message, *args, **kargs)
+        self.addloop( self._log("INFO", self._core.options, message, *args, **kargs) )
 
     def warn(self, message, *args, **kargs) -> None:
-        self._log("WARNING", self._core.options, message, *args, **kargs)
+        self.addloop( self._log("WARNING", self._core.options, message, *args, **kargs) )
 
     def error(self, message, *args, **kargs) -> None:
-        self._log("ERROR", self._core.options, message, *args, **kargs)
+        self.addloop( self._log("ERROR", self._core.options, message, *args, **kargs) )
 
     def crit(self, message, *args, **kargs) -> None:
-        self._log("CRITICAL", self._core.options, message, *args, **kargs)
+        self.addloop( self._log("CRITICAL", self._core.options, message, *args, **kargs) )
 
     def log(self, level, options, message, *args, **kargs) -> None:
-        self._log(level, options, message, *args, **kargs)
+        self.addloop( self._log(level, options, message, *args, **kargs) )
 
 
     def catch(
@@ -200,7 +210,7 @@ class LogError_V3():
 
                 tracebacks_text = f"{message}\n{traceback_request['Hadler_tb']}\n\n{traceba}{traceback_request['ErrorName_tb']}"
 
-                self._log(level, options_depth, tracebacks_text)
+                self.addloop( self._log(level, options_depth, tracebacks_text) )
 
                 if onerror is not None:
                     onerror(value_)
