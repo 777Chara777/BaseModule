@@ -99,24 +99,33 @@ def mpause(text: str):
     print(text)
     sys.stdin.readline(1)
 
-class mdeque(object):
+class mdeque():
     def __init__(self, maxlen:int) -> None:
-        self.maxlen = maxlen
-        self.array = []  
+        self.__maxlen = maxlen
+        self.__array = []  
 
-    def __str__(self) -> str:
-        return str(self.array)
-    
     def __repr__(self) -> str:
-        return "<BaseModule.mdeque handlers=[maxlen=%s, array=%r]>" % (self.maxlen, self.array)
+        return "<BaseModule.BaseModule.mdeque handlers=[maxlen=%s, array=%r]>" % (self.__maxlen, self.__array)
     
+    def __getitem__(self, __key: int):
+        if isinstance(__key, int):
+            return self.__array[__key]
+        else:
+            raise TypeError("please use `int` instead of `%s`" % __key.__class__.__name__)
+    
+    def __setitem__(self, __key: int, __value) -> None:
+        if isinstance(__key, int):
+            self.__array[__key] = __value
+        else:
+            raise TypeError("please use `int` instead of `%s`" % __key.__class__.__name__)
+
     def append(self, __object) -> None:
-        if len(self.array) >= self.maxlen:
-            del self.array[0]
-        self.array.append(__object)     
+        if len(self.__array) >= self.__maxlen:
+            del self.__array[0]
+        self.__array.append(__object)     
 
     def converct(self) -> list:
-        return self.array
+        return self.__array
     
 
 
