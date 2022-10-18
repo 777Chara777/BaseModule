@@ -2,6 +2,7 @@
 
 import os
 import sys
+import time
 import asyncio
 
 import json
@@ -354,6 +355,21 @@ def zipencore(oldfile:str, filename: str) -> 'bool | None':
         except Exception as ex:
             return (False, ex)
     return None
+
+def SecTimeformat(time: int):
+    "time.time() -> type(day, hour, minute, sec)"
+    sec = int(time)
+
+    minute = sec // 60
+    hour = minute // 60
+    day = hour // 24
+
+    sec = sec % 60
+    minute = minute % 60
+    hour = hour % 24
+        
+    return (day, hour, minute, sec)
+
 def trackback_format(tb: TracebackType) -> dict:
     def traceback_get_info(tb) -> dict:
 
