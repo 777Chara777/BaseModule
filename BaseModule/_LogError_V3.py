@@ -42,7 +42,14 @@ class Core:
     def __repr__(self) -> str:
         return f"<BaseModule._LogError_V3.Core {self.options}>"
         
-class LogError_V3():
+class Singleton(type):
+    _instanses = {}
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instanses:
+            cls._instanses[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+        return cls._instanses[cls]
+
+class LogError_V3(metaclass=Singleton):
     def __init__(self):
         self._core = Core()
         self.loop = bm.AsyncLock()
@@ -52,7 +59,7 @@ class LogError_V3():
 
 
     def __repr__(self) -> str:
-        return "<BaseModule._LogError_V3 handlers=%r>" % list(self._core.handlers.values())
+        return "<BaseModule._LogError_V3 handlers=%r, hash=%s>" % (list(self._core.handlers.values()), hash(self))
 
     def add(self, file = None, format = None, color = False, defautlevel = "INFO", maxfilesize = "100 KB"): 
         if file is not None:
