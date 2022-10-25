@@ -1,6 +1,7 @@
-version = 1.0
+version = 2.0
 
 import math
+from typing import overload
 
 def is_eq_class(func):
     def wrepper(self, other):
@@ -9,6 +10,16 @@ def is_eq_class(func):
         
         return func(self, other)
     return wrepper
+
+def is_eq_class_v2(*args):
+    def function(func):
+        def wrepper(self, other):
+            if not isinstance(other, (self.__class__, ) + args):
+                raise TypeError( "'%s' not supported please use '%s'" % (type(other).__name__, type(self).__name__) )
+            
+            return func(self, other, isinstance(other, self.__class__))
+        return wrepper
+    return function
 
 # def for_data(func, other, if_ = (lambda a : True)) -> list:
 #     return [ func(key) for key in other if if_(key) ]
@@ -48,65 +59,91 @@ class _ObjectVector:
             return True
         return False
 
-    @is_eq_class
-    def __add__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] + other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+    @is_eq_class_v2(int, float)
+    def __add__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] + other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] + other for key in self.__dict__}
         return self.__class__(**response)
                         
-    def __iadd__(self, other: "_ObjectVector"):
+    def __iadd__(self, other: "_ObjectVector | int | float"):
         return self.__add__(other)
 
-    @is_eq_class
-    def __sub__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] - other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+    @is_eq_class_v2(int, float)
+    def __sub__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] - other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] - other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __isub__(self, other: "_ObjectVector"):
+    def __isub__(self, other: "_ObjectVector | int | float"):
         return self.__sub__(other)
     
-    @is_eq_class
-    def __mul__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] * other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+    @is_eq_class_v2(int, float)
+    def __mul__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] * other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] * other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __imul__(self, other: "_ObjectVector"):
+    def __imul__(self, other: "_ObjectVector | int | float"):
         return self.__mul__(other)
 
-    @is_eq_class
-    def __mod__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] % other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
-        return self.__class__(**response)
-                        
-    def __imod__(self, other: "_ObjectVector"):
-        return self.__mod__(other)
-
-    @is_eq_class
-    def __floordiv__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] // other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+    @is_eq_class_v2(int, float)
+    def __pow__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] ** other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] ** other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __ifloordiv__(self, other: "_ObjectVector"):
+    def __ipow__(self, other: "_ObjectVector | int | float"):
+        return self.__pow__(other)
+
+    @is_eq_class_v2(int, float)
+    def __mod__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] % other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] % other for key in self.__dict__ }
+        return self.__class__(**response)
+                        
+    def __imod__(self, other: "_ObjectVector | int | float"):
+        return self.__mod__(other)
+
+    @is_eq_class_v2(int, float)
+    def __floordiv__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] // other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] // other for key in self.__dict__ }
+        return self.__class__(**response)
+    
+    def __ifloordiv__(self, other: "_ObjectVector | int | float"):
         return self.__floordiv__(other)
 
-    @is_eq_class
-    def __truediv__(self, other: "_ObjectVector"):
-        response = { key: self.__dict__[key] / other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+    @is_eq_class_v2(int, float)
+    def __truediv__(self, other: "_ObjectVector | int | float", is_main_class):
+        if is_main_class:
+            response = { key: self.__dict__[key] / other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+        else:
+            response = { key: self.__dict__[key] / other for key in self.__dict__ }
         return self.__class__(**response)
 
-    def __itruediv__(self, other: "_ObjectVector"):
+    def __itruediv__(self, other: "_ObjectVector | int | float"):
         return self.__truediv__(other)
 
+    def totuple(self) -> tuple:
+        "Convert vector to tuple\n\n`vector(1,5).totuple > (1,5)`"
+        response = tuple(self.__dict__[key] for key in self.__dict__)
+        return response
+
     def copy(self):
-        "copy vector"
+        "Copy vector"
         return self.__class__(**self.__dict__)
-
-    def muls(self, value: int) -> None:
-        "mul vector on value"
-        for key in self.__dict__: self.__dict__[key] *= value
-
-    def subs(self, value: int) -> None:
-        "sub vector on value"
-        for key in self.__dict__: self.__dict__[key] /= value
 
 
 class Vector2D(_ObjectVector):
@@ -124,11 +161,11 @@ class Vector4D(_ObjectVector):
 
 summ = lambda a: int(a.x+a.y)
 
-def mulS(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
+def mul(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
     if isinstance(a, Vector2D): return Vector2D(a.x*value, a.y*value)
     elif isinstance(a, Vector3D): return Vector3D(a.x*value, a.y*value, a.z*value)
 
-def mulS_sub(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
+def sub(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
     if isinstance(a, Vector2D): return Vector2D(a.x/value, a.y/value)
     elif isinstance(a, Vector3D): return Vector3D(a.x/value, a.y/value, a.z/value)
 
@@ -137,14 +174,15 @@ def dot(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D") -> int:
     elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return a.x*b.x + a.y*b.y + a.z*b.z
 
 def length(a: "Vector3D | Vector2D"):
-    if isinstance(a, Vector2D): return math.sqrt(a.x**2 + a.y**2)
+    if isinstance(a, Vector2D): return math.sqrt(a.x**2 + a.y**2) 
     elif isinstance(a, Vector3D): return math.sqrt(a.x**2 + a.y**2 + a.z**2)
 
 def normalize(a: "Vector3D | Vector2D") -> "Vector2D | Vector3D":
-    return mulS(a, 1 / length(a))
+    value = length(a)
+    return a * 1 / value if int(value) != 0 else 1
 
 def reflect(rd: "Vector3D | Vector2D", n: "Vector3D | Vector2D") -> "Vector3D | Vector2D":
-    return rd - mulS(n, 2 * dot(n, rd))
+    return rd - n * (2 * dot(n, rd))
 
 
 def sign_3(a):
@@ -192,12 +230,13 @@ def GetTriangleNormal(a: Vector3D, b: Vector3D, c: Vector3D) -> Vector3D:
 #     h = math.sqrt(h)
 #     return Vector2D(-b - h, -b + h)
 
-
+@overload
 def coutVector(a:Vector2D,b:Vector2D, num:int) -> "True | False":
     d = math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 )
 
     return True if d <= num else False
 
+@overload
 def coutVector(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
     if isinstance(a, Vector2D) and isinstance(b, Vector2D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 )
-    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2, + (a.z-b.z)**2 )
+    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2 )
