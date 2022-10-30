@@ -55,8 +55,6 @@ class LogError_V3(metaclass=Singleton):
         self.loop = bm.AsyncLock()
         self.eventloop = asyncio.get_event_loop()
 
-        self.addloop = lambda func : self.eventloop.create_task(func)
-
 
     def __repr__(self) -> str:
         return "<BaseModule._LogError_V3 handlers=%r, hash=%s>" % (list(self._core.handlers.values()), hash(self))
@@ -101,11 +99,11 @@ class LogError_V3(metaclass=Singleton):
             newzip.write(file)
         open(file, 'w')
 
-    async def _log(self, __level, __options, __message, *args, **kargs) -> None:
+    def _log(self, __level, __options, __message, *args, **kargs) -> None:
         """Logger foramt message and save to file"""
 
-        async def savefile(msg):
-            await self.loop.acquire()
+        def savefile(msg):
+            # await self.loop.acquire()
             if __options["dir_file_save"] is not None:
                 
                 int_number_type: int = bm.getlist_size(str(__options["maxfilesize"]).split(" ")[1])
@@ -118,7 +116,7 @@ class LogError_V3(metaclass=Singleton):
 
                 with open(__options["dir_file_save"], 'a+', encoding='utf-8') as file:
                     file.write(f"{msg}\n")
-            await self.loop.release()
+            # await self.loop.release()
 
         def format_message(__foramt: str, _message, level):
             """Foramt message"""
@@ -155,27 +153,27 @@ class LogError_V3(metaclass=Singleton):
             send_message = print if __options["color"] is False else rich.print
             send_message(message)
         
-        if '--nosave' not in args and __options["dir_file_save"] is not None: await savefile(message)
+        if '--nosave' not in args and __options["dir_file_save"] is not None: savefile(message)
             
 
 
     def debug(self, message, *args, **kargs) -> None:
-        self.addloop( self._log("DEBUG", self._core.options, message, *args, **kargs) )
+        self._log("DEBUG", self._core.options, message, *args, **kargs)
     
     def info(self, message, *args, **kargs) -> None:
-        self.addloop( self._log("INFO", self._core.options, message, *args, **kargs) )
+        self._log("INFO", self._core.options, message, *args, **kargs)
 
     def warn(self, message, *args, **kargs) -> None:
-        self.addloop( self._log("WARNING", self._core.options, message, *args, **kargs) )
+        self._log("WARNING", self._core.options, message, *args, **kargs)
 
     def error(self, message, *args, **kargs) -> None:
-        self.addloop( self._log("ERROR", self._core.options, message, *args, **kargs) )
+        self._log("ERROR", self._core.options, message, *args, **kargs)
 
     def crit(self, message, *args, **kargs) -> None:
-        self.addloop( self._log("CRITICAL", self._core.options, message, *args, **kargs) )
+        self._log("CRITICAL", self._core.options, message, *args, **kargs)
 
     def log(self, level, options, message, *args, **kargs) -> None:
-        self.addloop( self._log(level, options, message, *args, **kargs) )
+        self._log(level, options, message, *args, **kargs)
 
 
     def catch(
@@ -218,7 +216,7 @@ class LogError_V3(metaclass=Singleton):
 
                 tracebacks_text = f"{message}\n{traceback_request['Hadler_tb']}\n\n{traceba}{traceback_request['ErrorName_tb']}"
 
-                self.addloop( self._log(level, options_depth, tracebacks_text) )
+                self._log(level, options_depth, tracebacks_text)
 
                 if onerror is not None:
                     onerror(value_)

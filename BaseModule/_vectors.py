@@ -26,6 +26,13 @@ def is_eq_class_v2(*args):
 
 class _ObjectVector:
     def __init__(self, **kargs) -> None:
+        """### _ObjectVector add new vector
+        ```py
+        class Vector5D(_ObjectVector):
+            def __init__(self, x=0.0, y=0.0, z=0.0, w=0.0, g=0.0) -> None:
+                super().__init__(x=x, y=y, z=z, w=w, g=g)
+        ```
+        """
         self.__dict__ = kargs
 
     def __str__(self) -> str:

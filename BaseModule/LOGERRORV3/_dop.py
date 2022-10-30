@@ -13,7 +13,7 @@ def findmessage_2(mesasge: str, __findtext: str) -> "int | bool":
 
 
 def _getframe(depth, number=0):
-    frame = get_frame(depth + (10 + number))
+    frame = get_frame(depth + (4 + number))
     code = frame.f_code
 
     try:
@@ -21,17 +21,4 @@ def _getframe(depth, number=0):
     except KeyError:
         name = None
 
-    return (name, code.co_name, frame.f_lineno) 
-
-# def _process_traceback(data: str) -> tuple:
-#     traceback_list = []
-
-#     for x in [x.replace("\n", '').split('  ') for x in data]:
-#         for text in x:
-#             if text != '':
-#                 traceback_list.append(text)
-
-#     traceback_message = traceback_list.pop(0)
-#     error_raise = traceback_list.pop(-1)
-
-#     return (traceback_message, error_raise, traceback_list)
+    return (name, code.co_name, frame.f_lineno)
