@@ -26,13 +26,6 @@ def is_eq_class_v2(*args):
 
 class _ObjectVector:
     def __init__(self, **kargs) -> None:
-        """### _ObjectVector add new vector
-        ```py
-        class Vector5D(_ObjectVector):
-            def __init__(self, x=0.0, y=0.0, z=0.0, w=0.0, g=0.0) -> None:
-                super().__init__(x=x, y=y, z=z, w=w, g=g)
-        ```
-        """
         self.__dict__ = kargs
 
     def __str__(self) -> str:
@@ -113,9 +106,9 @@ class _ObjectVector:
     @is_eq_class_v2(int, float)
     def __mod__(self, other: "_ObjectVector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] % other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: self.__dict__[key] % other.__dict__[key] if other.__dict__[key] != 0 else 1 for key in other.__dict__ if key in self.__dict__ }
         else:
-            response = { key: self.__dict__[key] % other for key in self.__dict__ }
+            response = { key: self.__dict__[key] % other if other != 0 else 1 for key in self.__dict__ }
         return self.__class__(**response)
                         
     def __imod__(self, other: "_ObjectVector | int | float"):
@@ -124,9 +117,9 @@ class _ObjectVector:
     @is_eq_class_v2(int, float)
     def __floordiv__(self, other: "_ObjectVector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] // other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: self.__dict__[key] // other.__dict__[key] if other.__dict__[key] != 0 else 1 for key in other.__dict__ if key in self.__dict__ }
         else:
-            response = { key: self.__dict__[key] // other for key in self.__dict__ }
+            response = { key: self.__dict__[key] // other if other != 0 else 1  for key in self.__dict__ }
         return self.__class__(**response)
     
     def __ifloordiv__(self, other: "_ObjectVector | int | float"):
@@ -142,6 +135,9 @@ class _ObjectVector:
 
     def __itruediv__(self, other: "_ObjectVector | int | float"):
         return self.__truediv__(other)
+    
+    def __iter__(self):
+        return iter(self.totuple())
 
     def totuple(self) -> tuple:
         "Convert vector to tuple\n\n`vector(1,5).totuple > (1,5)`"
@@ -191,6 +187,9 @@ def normalize(a: "Vector3D | Vector2D") -> "Vector2D | Vector3D":
 def reflect(rd: "Vector3D | Vector2D", n: "Vector3D | Vector2D") -> "Vector3D | Vector2D":
     return rd - n * (2 * dot(n, rd))
 
+def angle(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
+    """find angle between vectors \n\n ``angle(vec2d(0,3), vec2d(4,6)) -> 0.8320502943378437``"""
+    return dot(a, b) / (length(a)*length(b))
 
 def sign_3(a):
     return (0 < a) - (a < 0)
