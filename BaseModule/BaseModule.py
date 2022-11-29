@@ -222,17 +222,12 @@ def reloadModule(Module: __Module) -> __Module:
     """Reload Module"""
     return reload(Module)
     
-def load_json(derictory: str, *args) -> 'None | dict':
+def load_json(derictory: str, *args) -> 'None | list':
     """getting specific key from json file"""
     if misfile(derictory) and len(args) != 0:
         with open(derictory, encoding="utf-8") as config_file:
             data: dict= json.load(config_file)
-        data_info: dict={}
-        for num, key in enumerate(args):
-            if data.get(key) != None:
-                if len(args)-num == 1 and len(data_info) == 0:
-                    return data[key]
-                data_info[key] = data[key]
+        data_info = [data[key] for key in args if key in data]
         return data_info
     else:
         return None
