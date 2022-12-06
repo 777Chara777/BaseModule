@@ -182,7 +182,8 @@ class LogError_V3(metaclass=Singleton):
         level = "ERROR" ,
         reverse = False,
         onerror = None,
-        message = "An error has occurred"):
+        message = "An error has occurred",
+        ignore_exceptions: tuple=(SystemExit)):
 
         if callable(_exception) and (
             not inspect.isclass(_exception) or not issubclass(_exception, BaseException)
@@ -199,7 +200,7 @@ class LogError_V3(metaclass=Singleton):
             
             def __exit__(self_, type_, value_, traceback_: TracebackType):
                 
-                if type_ is None:
+                if type_ is None or type_ in ignore_exceptions:
                     return
 
                 if not self_._decorator_type:
@@ -249,4 +250,3 @@ class LogError_V3(metaclass=Singleton):
         return Catcher(False)
 
 logerror = LogError_V3()
-
