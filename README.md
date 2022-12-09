@@ -18,7 +18,7 @@ from BaseModule._LogError_V3 import logerror as logger
 # - {time$} -> $ - type time. Use BaseModule.Time( num:int )
 # - {level} -> level log 'DEBUG/INFO/WARN/ERROR...'
 # - {function} -> shows call
-# - {message} -. it's message
+# - {message} -> it's message
 
 # color -> if false use 'print()' or true use 'rich.print()'
 
