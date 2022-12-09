@@ -52,8 +52,6 @@ class Singleton(type):
 class LogError_V3(metaclass=Singleton):
     def __init__(self):
         self._core = Core()
-        self.loop = bm.AsyncLock()
-        self.eventloop = asyncio.get_event_loop()
 
 
     def __repr__(self) -> str:
@@ -183,7 +181,7 @@ class LogError_V3(metaclass=Singleton):
         reverse = False,
         onerror = None,
         message = "An error has occurred",
-        ignore_exceptions: tuple=(SystemExit)):
+        ignore_exceptions: tuple= (SystemExit,)):
 
         if callable(_exception) and (
             not inspect.isclass(_exception) or not issubclass(_exception, BaseException)
@@ -199,17 +197,18 @@ class LogError_V3(metaclass=Singleton):
                 return None
             
             def __exit__(self_, type_, value_, traceback_: TracebackType):
-                
-                if type_ is None or type_ in ignore_exceptions:
-                    return
-
-                if not self_._decorator_type:
-                    return
-
-                traceback_request = tb._format_traceback( traceback_ ) 
 
                 options_depth = self._core.options.copy()
                 options_depth['depth'] += 1
+                
+                if (type_ in ignore_exceptions): # Ignor_Exeptions 
+                    self._log("INFO", options_depth, f"Ignor Exceptions: {type_.__name__}")
+                    return
+
+                if (type_ is None) or (not self_._decorator_type):
+                    return
+
+                traceback_request = tb._format_traceback( traceback_ ) 
 
                 traceba = ""
                 for t in traceback_request['Lists_tb']:
