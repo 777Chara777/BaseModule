@@ -13,38 +13,38 @@ git clone https://github.com/777Chara777/BaseModule.git
 mcls: int # -> clear console
 mplatform_: str # -> your platform
 misdir: bool # -> i's dir
-misfile: bool # -> 
-mkdir # -> 
-mlistdir: list # -> 
-mlistdir2: list | str # ->
-mremove # -> 
-mgetlogin: str # -> 
-mgetcwd: str # -> 
-mrenamefile # -> 
-mdirname: str # -> 
-mismodules: bool # -> 
-mutcnow: time.time # -> 
-mpause # -> 
-mdeque # -> 
-mjoin: str|list # -> 
-initModule: bool | __Module # -> 
-reloadModule: __Module # -> 
-input_yaml: bool # -> 
-loadall_yaml: dict # -> 
-connectdb # -> 
-listtostr: str # -> 
-timeformat: str # -> 
-dictkey: list # -> 
-dictitems: list # -> 
-zipdecode # -> 
-zipencore # -> 
-Time: str # -> 
-get_size: str # -> 
-file_size: list[int, str, int] # -> 
-load_json: dict # -> 
-input_json: bool # -> 
-loadall_json: dict # -> 
-trackback_format: str # -> 
+misfile: bool # -> i's file
+mkdir # -> create dir
+mlistdir: list # -> check files 
+mlistdir2: list | str # -> check files v2
+mremove # -> delete file
+mgetlogin: str # -> user
+mgetcwd: str # -> derectory
+mrenamefile # -> rename file
+mdirname: str # -> returns the directory component of a pathname
+mismodules: bool # -> check module
+mutcnow: time.time # -> return UTC time
+mpause # -> in consile plause
+mdeque # -> ...
+mjoin: str|list # -> is join
+initModule: bool | __Module # -> import module 
+reloadModule: __Module # -> reload module
+input_yaml: bool # -> save yml file
+loadall_yaml: dict # -> load yml file 
+connectdb # -> connect to database
+listtostr: str # -> list to string
+timeformat: str # -> time format
+dictkey: list # -> extract keys from the dict
+dictitems: list # -> extract items from the dict
+zipdecode # -> decode zip file
+zipencore # -> encode zip file
+Time: str # -> get Time 
+get_size: str # -> you can check size file
+file_size: list[int, str, int] # -> you can check size file
+load_json: dict # -> save json file
+input_json: bool # -> load json file 
+loadall_json: dict # ->  load all info json file 
+trackback_format: str # -> return trackback_format
 ```
 
 ### LogError.py
