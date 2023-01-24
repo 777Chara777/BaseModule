@@ -10,6 +10,45 @@ git clone https://github.com/777Chara777/BaseModule.git
 
 ### BaseModule.py
 ```py
+mcls: int # -> clear console
+mplatform_: str # -> your platform
+misdir: bool # -> i's dir
+misfile: bool # -> 
+mkdir # -> 
+mlistdir: list # -> 
+mlistdir2: list | str # ->
+mremove # -> 
+mgetlogin: str # -> 
+mgetcwd: str # -> 
+mrenamefile # -> 
+mdirname: str # -> 
+mismodules: bool # -> 
+mutcnow: time.time # -> 
+mpause # -> 
+mdeque # -> 
+mjoin: str|list # -> 
+initModule: bool | __Module # -> 
+reloadModule: __Module # -> 
+input_yaml: bool # -> 
+loadall_yaml: dict # -> 
+connectdb # -> 
+listtostr: str # -> 
+timeformat: str # -> 
+dictkey: list # -> 
+dictitems: list # -> 
+zipdecode # -> 
+zipencore # -> 
+Time: str # -> 
+get_size: str # -> 
+file_size: list[int, str, int] # -> 
+load_json: dict # -> 
+input_json: bool # -> 
+loadall_json: dict # -> 
+trackback_format: str # -> 
+```
+
+### LogError.py
+```py
 from BaseModule._LogError_V3 import logerror as logger
 
 # file -> save log in file
