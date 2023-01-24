@@ -139,11 +139,34 @@ class _ObjectVector:
     def __iter__(self):
         return iter(self.totuple())
 
+    def __pos__(self):
+        return self + 1
+    
+    def __neg__(self):
+        return self - 1
+    
+    def __abs__(self):
+        return self.__class__( **{ key: abs(self.__dict__[key]) for key in self.__dict__ } )
+    
+    def __round__(self, number: int):
+        return self.__class__( **{ key: round(self.__dict__[key], number) for key in self.__dict__ } )
+
+    def __floor__(self):
+        return self.__class__( **{ key: math.floor(self.__dict__[key]) for key in self.__dict__ } )
+
+    def __ceil__(self):
+        return self.__class__( **{ key: math.ceil(self.__dict__[key]) for key in self.__dict__ } )
+
+    def __trunc__(self):
+        return self.__class__( **{ key: math.trunc(self.__dict__[key]) for key in self.__dict__ } )
+
+
     def totuple(self) -> tuple:
         "Convert vector to tuple\n\n`vector(1,5).totuple > (1,5)`"
         response = tuple(self.__dict__[key] for key in self.__dict__)
         return response
 
+    @property
     def copy(self):
         "Copy vector"
         return self.__class__(**self.__dict__)
@@ -165,10 +188,12 @@ class Vector4D(_ObjectVector):
 summ = lambda a: int(a.x+a.y)
 
 def mul(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
+    "`mul( Vector2D(3, 15), 5 ) -> Vector2D(17, 75)`\n\nmultiplication of a vector by a value"
     if isinstance(a, Vector2D): return Vector2D(a.x*value, a.y*value)
     elif isinstance(a, Vector3D): return Vector3D(a.x*value, a.y*value, a.z*value)
 
 def sub(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
+    "`sub( Vector2D(3, 15), 5 ) -> Vector2D(0.6, 3.0)`\n\dividing of a vector by a value"
     if isinstance(a, Vector2D): return Vector2D(a.x/value, a.y/value)
     elif isinstance(a, Vector3D): return Vector3D(a.x/value, a.y/value, a.z/value)
 
@@ -177,12 +202,18 @@ def dot(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D") -> int:
     elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return a.x*b.x + a.y*b.y + a.z*b.z
 
 def length(a: "Vector3D | Vector2D"):
+    "`length( Vector2D(3, 15) ) -> 15.29`"
     if isinstance(a, Vector2D): return math.sqrt(a.x**2 + a.y**2) 
     elif isinstance(a, Vector3D): return math.sqrt(a.x**2 + a.y**2 + a.z**2)
 
+def distance(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
+    "`distance( Vector2D(3, 15), Vector2D(0, 0) ) -> 15.29`"
+    if isinstance(a, Vector2D): return length(a - b)
+    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return length(a - b)
+
 def normalize(a: "Vector3D | Vector2D") -> "Vector2D | Vector3D":
     value = length(a)
-    return a * 1 / value if int(value) != 0 else 1
+    return a * 1 / value if int(value) != 0 else a
 
 def reflect(rd: "Vector3D | Vector2D", n: "Vector3D | Vector2D") -> "Vector3D | Vector2D":
     return rd - n * (2 * dot(n, rd))

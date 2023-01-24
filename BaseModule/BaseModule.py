@@ -19,6 +19,8 @@ from types import TracebackType
 from datetime import datetime
 from importlib import reload
 
+from . import _vectors as vec 
+
 
 __all__ = (
     'mcls',
@@ -55,7 +57,10 @@ __all__ = (
     'load_json',
     'input_json',
     'loadall_json',
-    "trackback_format")
+    "trackback_format",
+    "drawLine",
+    "cross",
+    "are_crossing")
 
 def __system_info():
     return sys.platform
@@ -364,6 +369,80 @@ def SecTimeformat(time: int):
     hour = hour % 24
         
     return (day, hour, minute, sec)
+
+def drawLine(a: vec.Vector2D, b: vec.Vector2D, value: list, simble: str="-"):
+    delta_x = abs(b.x - a.x)
+    delta_y = abs(b.y - a.y)
+
+    sign_x = 1 if a.x < b.x else -1
+
+    sign_y = 1 if a.y < b.y else -1
+
+    L = delta_x - delta_y
+    while (a.x != b.x or a.y != b.y): 
+        value[a.x][a.y] = simble
+
+        L2 = L * 2
+        
+        if L2 > -delta_y: 
+            L -= delta_y
+            a.x += sign_x
+        
+        if L2 < delta_x:
+            L += delta_x
+            a.y += sign_y
+
+
+def cross(a: vec.Vector2D, b: vec.Vector2D, c: vec.Vector2D, d: vec.Vector2D) -> "vec.Vector2D | None":
+    def algoritm(a: vec.Vector2D, b: vec.Vector2D) -> "tuple[bool, vec.Vector2D]":
+        f = b-a
+        if 0 == f.x :
+            return (False, )
+
+        k = f.y/f.x
+        b = a.y-(k*a.x)
+        return (True, k, b)
+
+    type_1, *t1 = algoritm(a, b)
+    type_2, *t2 = algoritm(c, d)
+
+    if type_1 is False or type_2 is False:
+        return
+    
+    # function система уровнений 
+    a = t1[0] - t2[0]
+    if a == 0:
+        return
+    b = t1[1] - t2[1]
+
+    x = -b/a
+    y = t2[0]*x+t2[1]
+
+    return vec.Vector2D(x, y)
+
+def are_crossing(a: vec.Vector2D, b: vec.Vector2D, c: vec.Vector2D, d: vec.Vector2D) -> bool:
+    "algorithm for determining the intersection of two segments"
+    point_g = cross(a,b,c,d)
+    if point_g is None:
+        return False
+    
+    dis_ab = round(vec.distance(a, b), 2)
+    dis_cd = round(vec.distance(c, d), 2)
+    
+    dis_a_g = vec.distance(a, point_g)
+    dis_b_g = vec.distance(b, point_g)
+    res = round( dis_a_g+dis_b_g, 2)
+
+    if dis_ab != res:
+        return False
+    dis_c_g = vec.distance(c, point_g)
+    dis_d_g = vec.distance(d, point_g)
+    res = round( dis_c_g+dis_d_g, 2)
+
+    if dis_cd != res:
+        return False
+
+    return True
 
 def trackback_format(tb: TracebackType) -> dict:
     def traceback_get_info(tb) -> dict:

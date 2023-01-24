@@ -18,6 +18,7 @@ from BaseModule._LogError_V3 import logerror as logger
 # - {time$} -> $ - type time. Use BaseModule.Time( num:int )
 # - {level} -> level log 'DEBUG/INFO/WARN/ERROR...'
 # - {function} -> shows call
+# - {coretype} -> core type
 # - {message} -> it's message
 
 # color -> if false use 'print()' or true use 'rich.print()'
@@ -26,11 +27,11 @@ from BaseModule._LogError_V3 import logerror as logger
 
 # maxfilesize -> not working
 
-logger.add( file="logfile.log", format="{time3} | {level}\t | {function} - {message}", color=True, defautlevel="INFO" )
+logger.add( file="logfile.log", format="{time3} | {coretype} {level}\t | {function} - {message}", color=True, defautlevel="INFO" )
 
 logger.savelog() # -> convert logfile in zip
 
-logger.info(message="test :)") # -> send "00-00-0000 00:00:00 | INFO\t | __main__:<module>:1 - test :)"
+logger.info(message="test :)") # -> send "00-00-0000 00:00:00 | _default INFO      | __main__:<module>:1 - test :)"
 
 
 @logger.catch
@@ -38,7 +39,7 @@ def test():
     print(0 / 2)
 
 test() 
-# 00-00-0000 00:00:00 | ERROR      | __main__:<module>:1 - An error has occurred
+# 00-00-0000 00:00:00 | _default ERROR      | __main__:<module>:1 - An error has occurred
 # Traceback (most recent call last):
 
 # 1 File "<stdin>", line 3, in test

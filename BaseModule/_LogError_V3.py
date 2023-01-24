@@ -1,9 +1,12 @@
 from types import TracebackType
+
+from ._TypesList import DEBUG, INFO, WARNING, ERROR, CRITICAL
 from .LOGERRORV3 import _dop as dp
 from .LOGERRORV3 import _trackback as tb
 
 from . import BaseModule as bm
 from . import _TypesList as tl
+
 
 from zipfile import ZipFile
 
@@ -23,24 +26,30 @@ TypesLevels = {
 }
 
 import time
-_version = '3.1.2'
+_version = '3.1.4'
 _startTime = time.time()
+_core__instanses: dict={}
 
 class Core:
-    def __init__(self):
-        self.options = {
-            "depth": 0,
-            "defautlevel": 'INFO',
-            "defautformat": '{time3} | {level}\t | {function} - {message}',
-            "dir_file_save": None,
-            "color": False,
-            "maxfilesize": "100 KB"
-        }
+    def __init__(self, *args):
 
-        self.handlers: dict = {}
+        NameCore: str= args[0] if len(args)!=0 else "_default"
+        if NameCore not in _core__instanses:
+            _core__instanses[NameCore] = {
+                "depth": 0,
+                "defautlevel": 'INFO',
+                "defautformat": '{time3} | {coretype} {level}\t | {function} - {message}',
+                "dir_file_save": None,
+                "color": False,
+                "maxfilesize": "100 KB"
+            }
+        self.options  : dict = _core__instanses[NameCore]
+        self.handlers : dict = {}
+        self._coreName: str  = NameCore
     
     def __repr__(self) -> str:
-        return f"<BaseModule._LogError_V3.Core {self.options}>"
+        return f"<BaseModule.LogError_V3.Core hash={hash(self)} \n - {self.options=}>"
+
         
 class Singleton(type):
     _instanses = {}
@@ -49,15 +58,22 @@ class Singleton(type):
             cls._instanses[cls] = super(Singleton, cls).__call__(*args, **kwargs)
         return cls._instanses[cls]
 
+# class Singleton_2:
+#     _instanses: dict= {}
+#     def __new__(cls, *args, **kwargs):
+#         if cls not in cls._instanses:
+#             cls._instanses[cls] = super(Singleton, cls).__new__(cls, *args, **kwargs)
+#         return cls._instanses[cls]
+
 class LogError_V3(metaclass=Singleton):
     def __init__(self):
-        self._core = Core()
+        self._core = Core("_default")
 
 
     def __repr__(self) -> str:
-        return "<BaseModule._LogError_V3 handlers=%r, hash=%s>" % (list(self._core.handlers.values()), hash(self))
+        return "<BaseModule.LogError_V3 handlers=%r, hash=%s hash_core=%s>" % (list(self._core.handlers.values()), hash(self), hash(self._core))
 
-    def add(self, file = None, format = None, color = False, defautlevel = "INFO", maxfilesize = "100 KB"): 
+    def add(self, file = None, format = None, color = False, defaultlevel = "INFO",  maxfilesize = "100 KB", default_core = "_default"): 
         if file is not None:
             self.setfile(file)
         
@@ -68,7 +84,14 @@ class LogError_V3(metaclass=Singleton):
             self.setcolor(color)
         
         if file is not self._core.options["defautlevel"]:
-            self.setlevel(defautlevel)
+            self.setlevel(defaultlevel)
+        
+        if default_core != "_default":
+            self.setcoretype(default_core)
+
+    def setcoretype(self, Caption: str="_default"):
+        """Set core type"""
+        self._core = Core(Caption)
 
     def setcolor(self, __color: bool):
         if isinstance(__color, bool):
@@ -129,6 +152,9 @@ class LogError_V3(metaclass=Singleton):
             if dp.findmessage(__foramt, "{function}"):
                 text = "%s:%s:%s" % ( dp._getframe(__options['depth']) )
                 __foramt = __foramt.replace("{function}", text)
+            
+            if dp.findmessage(__foramt, "{coretype}"): 
+                __foramt = __foramt.replace("{coretype}", str(self._core._coreName))
 
             if dp.findmessage(__foramt, "{message}"): 
                 __foramt = __foramt.replace("{message}", str(_message))
