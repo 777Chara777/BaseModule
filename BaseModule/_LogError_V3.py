@@ -229,7 +229,7 @@ class LogError_V3(metaclass=Singleton):
                 
                 if (type_ in ignore_exceptions): # Ignor_Exeptions 
                     self._log("INFO", options_depth, f"Ignor Exceptions: {type_.__name__}")
-                    return
+                    return not reverse
 
                 if (type_ is None) or (not self_._decorator_type):
                     return

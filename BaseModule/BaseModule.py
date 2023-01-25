@@ -53,7 +53,6 @@ __all__ = (
     'Time',
     'get_size',
     'file_size',
-    'LogError',
     'load_json',
     'input_json',
     'loadall_json',
