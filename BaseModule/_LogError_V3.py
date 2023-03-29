@@ -26,16 +26,17 @@ TypesLevels = {
 }
 
 import time
-_version = '3.1.4'
-_startTime = time.time()
-_core__instanses: dict={}
+__version__ = '3.1.5'
+__start__ = time.time()
+# _core__instanses: dict={}
 
 class Core:
-    def __init__(self, *args):
+    __core__instanses: dict={}
+    def __init__(self, Caption="_default"):
 
-        NameCore: str= args[0] if len(args)!=0 else "_default"
-        if NameCore not in _core__instanses:
-            _core__instanses[NameCore] = {
+        NameCore: str= Caption
+        if NameCore not in self.__core__instanses:
+            self.__core__instanses[NameCore] = {
                 "depth": 0,
                 "defautlevel": 'INFO',
                 "defautformat": '{time3} | {coretype} {level}\t | {function} - {message}',
@@ -43,12 +44,12 @@ class Core:
                 "color": False,
                 "maxfilesize": "100 KB"
             }
-        self.options  : dict = _core__instanses[NameCore]
+        self.options  : dict = self.__core__instanses[NameCore]
         self.handlers : dict = {}
         self._coreName: str  = NameCore
     
     def __repr__(self) -> str:
-        return f"<BaseModule.LogError_V3.Core hash={hash(self)} \n - {self.options=}>"
+        return f"<BaseModule.LogError_V3.Core hash={hash(self)} name={self._coreName} \n - {self.options=}>"
 
         
 class Singleton(type):
@@ -68,10 +69,17 @@ class Singleton(type):
 class LogError_V3(metaclass=Singleton):
     def __init__(self):
         self._core = Core("_default")
+        self.__LenCalls = 0
 
 
     def __repr__(self) -> str:
-        return "<BaseModule.LogError_V3 handlers=%r, hash=%s hash_core=%s>" % (list(self._core.handlers.values()), hash(self), hash(self._core))
+        return "<BaseModule.LogError_V3 handlers=%r, calls=%i, hash=%s, hash_core=%s, core_name=%s>" % (
+            list(self._core.handlers.values()), 
+            self.__LenCalls,
+            hash(self), 
+            hash(self._core), 
+            self._core._coreName
+        )
 
     def add(self, file = None, format = None, color = False, defaultlevel = "INFO",  maxfilesize = "100 KB", default_core = "_default"): 
         if file is not None:
@@ -87,9 +95,9 @@ class LogError_V3(metaclass=Singleton):
             self.setlevel(defaultlevel)
         
         if default_core != "_default":
-            self.setcoretype(default_core)
+            self.load_core(default_core)
 
-    def setcoretype(self, Caption: str="_default"):
+    def load_core(self, Caption: str="_default"):
         """Set core type"""
         self._core = Core(Caption)
 
@@ -114,14 +122,74 @@ class LogError_V3(metaclass=Singleton):
 
     def savelog(self):
         "save log file in .zip"
-        file = self._core.options["dir_file_save"]
-        name = str(file).split("/")[-1]
+        file: str = self._core.options["dir_file_save"]
+        name: str = file.split("/")[-1]
         with ZipFile(f"{file.replace(f'/{name}', '')}/{bm.Time(6)}-{name}.zip", "w") as newzip:
             newzip.write(file)
         open(file, 'w')
 
+    def create_core(self, Caption: str="_default"):
+        """Creating or Eding new core do not use it
+        ```py
+        with logerror.create_core("Test") as core:
+            # core.setcolor  core.setformat  core.setfile  core.setlevel
+            # core.getcolor  core.getformat  core.getfile  core.getlevel
+            
+            core.setcolor(True)
+            core.setformat("{function} {message}")
+        
+        ``` """
+        class CreateCore:
+
+            def __enter__(_self) -> "dict":
+
+                class Core2(Core):
+                    def __init__(self, caption):
+                        super().__init__(caption)
+                    
+                    def setcolor(self, __color: bool):
+                        if isinstance(__color, bool):
+                            self.options["color"] = __color
+                    
+                    def setformat(self, __format: str):
+                        if isinstance(__format, str):
+                            self.options["defautformat"] = __format
+                        
+                    def setfile(self, __file: str):
+                        if bm.misfile(__file):
+                            self.options["dir_file_save"] = __file
+                        else:
+                            raise Exception("File not found at given path '%s'" % __file)
+
+                    def setlevel(self, __level: str):
+                        """Set Defaut Format Standart `INFO`"""
+                        if __level in TypesLevels:
+                            self.options["defautlevel"] = __level
+
+                    @property
+                    def getcolor(self):
+                        return self.options["color"]
+                    @property
+                    def getformat(self):
+                        return self.options["defautformat"]
+                    @property
+                    def getfile(self):
+                        return self.options["dir_file_save"]
+                    @property
+                    def getlevel(self):
+                        return self.options["defautlevel"]
+
+                return Core2(Caption)
+
+            def __exit__(_self, exception_type, exception_value, traceback):
+                pass
+
+        return CreateCore()
+
     def _log(self, __level, __options, __message, *args, **kargs) -> None:
         """Logger foramt message and save to file"""
+
+        self.__LenCalls+=1
 
         def savefile(msg):
             # await self.loop.acquire()
@@ -153,6 +221,9 @@ class LogError_V3(metaclass=Singleton):
                 text = "%s:%s:%s" % ( dp._getframe(__options['depth']) )
                 __foramt = __foramt.replace("{function}", text)
             
+            if dp.findmessage(__foramt, "{lencalls}"): 
+                __foramt = __foramt.replace("{lencalls}", str(self.__LenCalls))
+
             if dp.findmessage(__foramt, "{coretype}"): 
                 __foramt = __foramt.replace("{coretype}", str(self._core._coreName))
 

@@ -59,6 +59,7 @@ __all__ = (
     "trackback_format",
     "drawLine",
     "cross",
+    "memory",
     "are_crossing")
 
 def __system_info():
@@ -558,6 +559,39 @@ def trackback_format(tb: TracebackType) -> dict:
     
     return format_traceback
 
+def memory(func):
+    """Cash the result of the function in save in file .pycash.json in __pycache__
+
+    ```py
+    @memory
+    def sum(a, b) -> int:
+        return a + b
+
+    # Test 1 first
+    sum(15, 43) # -> result 58 for "9 sec"
+
+    # Test 2 second
+    sum(15, 43) # -> result 58 for "0.01 sec"
+    ```
+    """
+    if not misdir("./__pycache__/"):
+        mkdir("./__pycache__")
+
+    if not misfile("./__pycache__/.pycash.json"):
+        open("./__pycache__/.pycash.json", "w").write("{}")
+    
+    cache = loadall_json("./__pycache__/.pycash.json")
+    
+    def wrapper(*args, **kwargs):
+        name_function = f"{func.__name__} {str(args)} {str(kwargs)}"
+
+        if name_function not in cache:
+            cache[name_function] = func(*args, **kwargs)
+            input_json("./__pycache__/.pycash.json", cache)
+        
+        return cache[name_function]
+    
+    return wrapper
 
 class AsyncLock:
     def __init__(self) -> None:

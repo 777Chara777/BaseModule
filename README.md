@@ -10,8 +10,8 @@
 ```py
 mcls: int # -> clear console
 mplatform_: str # -> your platform
-misdir: bool # -> i's dir
-misfile: bool # -> i's file
+misdir: bool # -> is dir
+misfile: bool # -> is file
 mkdir # -> create dir
 mlistdir: list # -> check files 
 mlistdir2: list | str # -> check files v2
@@ -47,10 +47,10 @@ trackback_format: str # -> return trackback_format
 
 ### LogError.py
 ```py
-from BaseModule._LogError_V3 import logerror as logger
+from BaseModule._LogError_V3 import logerror 
 from BaseModule._LogError_V3 import INFO, CRITICAL
 
-# logger.add > args
+# logerror.add > args
 # - file -> save log in file
 # 
 # - format -> foramt message
@@ -58,37 +58,51 @@ from BaseModule._LogError_V3 import INFO, CRITICAL
 #    - {level} -> level log 'DEBUG/INFO/WARN/ERROR...'
 #    - {function} -> shows call
 #    - {coretype} -> core type
+#    - {lencalls} -> show len calls function log
 #    - {message} -> it's message
 # 
 # - color -> if false use 'print()' or true use 'rich.print()'
 # 
 # - defaultlevel -> the minimum level at which the log will output a message to the console
 # 
+# - default_core -> which core will be selected by default
+# 
 # - maxfilesize -> not working
 
-logger.add( file="logfile.log", format="{time3} | {coretype} {level}\t | {function} - {message}", color=True, defaultlevel=INFO, default_core="MAIN_CORE" )
+logerror.add( file="logfile.log", format="{lencalls}\t {time3} | {coretype} {level}\t | {function} - {message}", color=True, defaultlevel=INFO, default_core="MAIN_CORE" )
 
-logger.savelog() # -> convert logfile in zip
+logerror.savelog() # -> convert logfile in zip
 
-logger.info(message="test :)") # -> send "00-00-0000 00:00:00 | MAIN_CORE INFO      | __main__:<module>:1 - test :)"
+logerror.info(message="test :)") # -> send "1       00-00-0000 00:00:00 | MAIN_CORE INFO      | __main__:<module>:1 - test :)"
 
 
-# @logger.catch > args
+# @logerror.catch > args
 # - level = "ERROR" -> level send message
 # - onerror = None -> will be called on error
 # - message = "An error has occurred" -> error message
 # - ignore_exceptions: tuple= (SystemExit,) -> ignore exeptions
 
 
+#logerror.create_core -> you create or edit a core without accepting it. used only in 'ContextManager or with'
+
+with logerror.create_core("NewCore") as core:
+    # core > there are many functions
+    # - setcolor  | getcolor
+    # - setformat | getformat
+    # - setfile   | getfile
+    # - setlevel  | getleval
+    core.setformat("{lencalls}\t @{level} !{function} > {message}")
+    core.setcolor(False)
+
 
 # Test 1
-@logger.catch(level=CRITICAL, mesage="error message")
+@logerror.catch(level=CRITICAL, mesage="error message")
 def test():
     print(2 / 0)
 
 test() # call function
 
-# 00-00-0000 00:00:00 | MAIN_CORE CRITICAL      | __main__:<module>:1 - error message
+# 2       00-00-0000 00:00:00 | MAIN_CORE CRITICAL      | __main__:<module>:1 - error message
 # Traceback (most recent call last):
 
 # 1 File "<stdin>", line 3, in test
@@ -99,12 +113,12 @@ test() # call function
 
 
 # Test 2 'with ignore_exceptions'
-@logger.catch(level=CRITICAL, message="error message", ignore_exceptions=(SystemExit, ZeroDivisionError,))
+@logerror.catch(level=CRITICAL, message="error message", ignore_exceptions=(SystemExit, ZeroDivisionError,))
 def test():
     print(2 / 0)
 
 test() # call function
 
-# 00-00-0000 00:00:00 | MAIN_CORE INFO      | __main__:<module>:1 - Ignor Exceptions: ZeroDivisionError 
+# 3       00-00-0000 00:00:00 | MAIN_CORE INFO      | __main__:<module>:1 - Ignor Exceptions: ZeroDivisionError 
 
 ```

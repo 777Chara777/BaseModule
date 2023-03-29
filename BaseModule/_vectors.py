@@ -235,6 +235,13 @@ step = lambda edge, a : Vector3D(step_3(edge.x, a.x), step_3(edge.y, a.y), step_
 
 radians = lambda degrees : (float(degrees) * math.pi) / 180
 
+def radians_in_degrees(radians: float) -> float:
+    """
+    radians -> degrees
+    radians: math.acos
+    """
+    return radians * 180 / math.pi
+
 def ListToVector(data: list) -> "None | Vector2D | Vector3D":
     if isinstance(data, list) or isinstance(data, tuple):
         if len(data) == 2:
@@ -277,3 +284,4 @@ def coutVector(a:Vector2D,b:Vector2D, num:int) -> "True | False":
 def coutVector(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
     if isinstance(a, Vector2D) and isinstance(b, Vector2D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 )
     elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2 )
+
