@@ -1,7 +1,8 @@
-version = 2.0
-
+import numpy
 import math
-from typing import overload
+
+
+__version__ = 2.0
 
 def is_eq_class(func):
     def wrepper(self, other):
@@ -14,136 +15,197 @@ def is_eq_class(func):
 def is_eq_class_v2(*args):
     def function(func):
         def wrepper(self, other):
-            if not isinstance(other, (self.__class__, ) + args):
-                raise TypeError( "'%s' not supported please use '%s'" % (type(other).__name__, type(self).__name__) )
+            if not isinstance(other, (self.__class__, *args)):
+                raise TypeError( "'%s' not supported please use '%s' or %s" % (type(other).__name__, type(self).__name__, ", ".join([arg.__name__ for arg in args])) )
             
             return func(self, other, isinstance(other, self.__class__))
         return wrepper
     return function
 
-# def for_data(func, other, if_ = (lambda a : True)) -> list:
-#     return [ func(key) for key in other if if_(key) ]
 
-class _ObjectVector:
+class Vector(Exception): pass
+
+class ObjectVector:
+    """
+    A base class representing an object vector with dynamic attributes.
+
+    The `ObjectVector` class allows you to create and manipulate vector objects with dynamic attributes.
+    Each attribute represents a component of the vector. The class provides various operations and
+    functionalities for working with vectors, such as equality comparison, arithmetic operations, and more.
+
+    Attributes:
+    - __dict__ (dict): Dictionary containing the attribute-value pairs of the vector.
+
+    Methods:
+    - __init__(self, **kwargs): Initializes the vector object with the specified attribute-value pairs.
+    - __str__(self): Returns a string representation of the vector.
+    - __repr__(self): Returns a string representation of the vector including its attributes and hash value.
+    - __eq__(self, other): Checks if the vector is equal to another vector.
+    - __hash__(self): Returns the hash value of the vector.
+    - __lt__(self, other): Checks if the vector is less than another vector.
+    - __gt__(self, other): Checks if the vector is greater than another vector.
+    - __add__(self, other): Performs vector addition with another vector or scalar.
+    - __iadd__(self, other): Performs in-place vector addition with another vector or scalar.
+    - __sub__(self, other): Performs vector subtraction with another vector or scalar.
+    - __isub__(self, other): Performs in-place vector subtraction with another vector or scalar.
+    - __mul__(self, other): Performs element-wise multiplication with another vector or scalar.
+    - __imul__(self, other): Performs in-place element-wise multiplication with another vector or scalar.
+    - __pow__(self, other): Performs element-wise exponentiation with another vector or scalar.
+    - __ipow__(self, other): Performs in-place element-wise exponentiation with another vector or scalar.
+    - __mod__(self, other): Performs element-wise modulo operation with another vector or scalar.
+    - __imod__(self, other): Performs in-place element-wise modulo operation with another vector or scalar.
+    - __floordiv__(self, other): Performs element-wise floor division with another vector or scalar.
+    - __ifloordiv__(self, other): Performs in-place element-wise floor division with another vector or scalar.
+    - __truediv__(self, other): Performs element-wise true division with another vector or scalar.
+    - __itruediv__(self, other): Performs in-place element-wise true division with another vector or scalar.
+    - __iter__(self): Returns an iterator for the vector.
+    - __pos__(self): Returns a new vector with each component's sign unchanged.
+    - __neg__(self): Returns a new vector with each component's sign reversed.
+    - __abs__(self): Returns a new vector with the absolute values of each component.
+    - __round__(self, number): Returns a new vector with each component rounded to the specified number of decimals.
+    - __floor__(self): Returns a new vector with each component rounded down to the nearest integer.
+    - __ceil__(self): Returns a new vector with each component rounded up to the nearest integer.
+    - __trunc__(self): Returns a new vector with each component truncated to the nearest integer.
+    - __getattr__(self, tag): Retrieves the values of attributes based on the specified tag(s).
+    - totuple(self): Converts the vector to a tuple.
+    - tonumpy(self, dtype=numpy.float64): Converts the vector to a NumPy array.
+    - copy(self): Creates a copy of the vector.
+    - sum(self): Returns the sum of all components in the vector.
+
+    Example usage:
+    >>> class Vec3(ObjectVector):
+    ...     def __init__(self, x=0.0, y=0.0, z=0.0)
+    ...         super().__init__(x=x, y=y, z=z)
+    ...
+    >>> vec = Vec3(x=1, y=2, z=3)
+    >>> vec
+    <module 'Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x7589c5a36c0558b, combined_hash=783914749563017248>
+    >>> vec.sum()
+    6
+    >>> vec.copy()
+    <module 'Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x7589c5a36c0558b, combined_hash=783914749563017584>
+    >>> vec.totuple()
+    (1,2,3)
+    >>> vec.tonumpy()
+    array([1., 2., 3.])
+    """
+
     def __init__(self, **kargs) -> None:
         self.__dict__ = kargs
 
     def __str__(self) -> str:
-        FormMessage = [ f"{key}={self.__dict__[key]}" for key in self.__dict__ ]
-        return "<%s {%s}>" % (type(self).__name__, ", ".join(FormMessage))
+        vector_keys = [ f"{key}={self.__dict__[key]}" for key in self.__dict__ ]
+        return "<%s, {%s}>" % (type(self).__name__,  ", ".join(vector_keys))
 
     def __repr__(self) -> str:
-        return "<module '%s' %s>" % (type(self).__name__, self.__dict__)
+        return "<module '%s' %s, hesh=%i, hex=%s, combined_hash=%i>" % (type(self).__name__, self.__dict__, self.__hash__(), hex( self.__hash__() ), self.combined_hash())
     
+    def __len__(self) -> int:
+        return len(self.__dict__)
+
     @is_eq_class
-    def __eq__(self, __o: "_ObjectVector") -> bool:
+    def __eq__(self, __o: "ObjectVector") -> bool:
         for key in __o.__dict__:
             if key in self.__dict__ and str(__o.__dict__[key]) != str(self.__dict__[key]):
                 return False
         return True
 
-    def __hesh__(self):
-        return hash(self.__dict__)
+    def __hash__(self) -> int:
+        return hash( self.totuple() )
 
     @is_eq_class
-    def __lt__(self, other: "_ObjectVector"):
-        type_and = [ self.__dict__[key] < other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
-        if True in type_and:
-            return True
-        return False
+    def __lt__(self, other: "ObjectVector") -> bool:
+        return True in [ self.__dict__[key] < other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
 
     @is_eq_class
-    def __gt__(self, other: "_ObjectVector"):
-        type_and = [ self.__dict__[key] > other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
-        if True in type_and:
-            return True
-        return False
+    def __gt__(self, other: "ObjectVector") -> bool:
+        return True in [ self.__dict__[key] > other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
 
     @is_eq_class_v2(int, float)
-    def __add__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __add__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
             response = { key: self.__dict__[key] + other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
         else:
             response = { key: self.__dict__[key] + other for key in self.__dict__}
         return self.__class__(**response)
                         
-    def __iadd__(self, other: "_ObjectVector | int | float"):
+    def __iadd__(self, other: "ObjectVector | int | float"):
         return self.__add__(other)
 
     @is_eq_class_v2(int, float)
-    def __sub__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __sub__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
             response = { key: self.__dict__[key] - other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
         else:
             response = { key: self.__dict__[key] - other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __isub__(self, other: "_ObjectVector | int | float"):
+    def __isub__(self, other: "ObjectVector | int | float"):
         return self.__sub__(other)
     
     @is_eq_class_v2(int, float)
-    def __mul__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __mul__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
             response = { key: self.__dict__[key] * other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
         else:
             response = { key: self.__dict__[key] * other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __imul__(self, other: "_ObjectVector | int | float"):
+    def __imul__(self, other: "ObjectVector | int | float"):
         return self.__mul__(other)
 
     @is_eq_class_v2(int, float)
-    def __pow__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __pow__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
             response = { key: self.__dict__[key] ** other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
         else:
             response = { key: self.__dict__[key] ** other for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __ipow__(self, other: "_ObjectVector | int | float"):
+    def __ipow__(self, other: "ObjectVector | int | float"):
         return self.__pow__(other)
 
     @is_eq_class_v2(int, float)
-    def __mod__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __mod__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] % other.__dict__[key] if other.__dict__[key] != 0 else 1 for key in other.__dict__ if key in self.__dict__ }
+            response = { key: (self.__dict__[key] % other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
         else:
-            response = { key: self.__dict__[key] % other if other != 0 else 1 for key in self.__dict__ }
+            response = { key: (self.__dict__[key] % other) if other != 0.0 else 0 for key in self.__dict__ }
         return self.__class__(**response)
                         
-    def __imod__(self, other: "_ObjectVector | int | float"):
+    def __imod__(self, other: "ObjectVector | int | float"):
         return self.__mod__(other)
 
     @is_eq_class_v2(int, float)
-    def __floordiv__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __floordiv__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] // other.__dict__[key] if other.__dict__[key] != 0 else 1 for key in other.__dict__ if key in self.__dict__ }
+            response = { key: (self.__dict__[key] // other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
         else:
-            response = { key: self.__dict__[key] // other if other != 0 else 1  for key in self.__dict__ }
+            response = { key: (self.__dict__[key] // other) if other != 0.0 else 0 for key in self.__dict__ }
         return self.__class__(**response)
     
-    def __ifloordiv__(self, other: "_ObjectVector | int | float"):
+    def __ifloordiv__(self, other: "ObjectVector | int | float"):
         return self.__floordiv__(other)
 
     @is_eq_class_v2(int, float)
-    def __truediv__(self, other: "_ObjectVector | int | float", is_main_class):
+    def __truediv__(self, other: "ObjectVector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] / other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: (self.__dict__[key] / other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
         else:
-            response = { key: self.__dict__[key] / other for key in self.__dict__ }
+            response = { key: (self.__dict__[key] / other) if other != 0.0 else 0 for key in self.__dict__ }
         return self.__class__(**response)
 
-    def __itruediv__(self, other: "_ObjectVector | int | float"):
+    def __itruediv__(self, other: "ObjectVector | int | float"):
         return self.__truediv__(other)
     
     def __iter__(self):
-        return iter(self.totuple())
+        return iter( self.totuple() )
 
     def __pos__(self):
-        return self + 1
+        return self.__class__( **{ key: +self.__dict__[key] for key in self.__dict__ } )
     
     def __neg__(self):
-        return self - 1
+        return self.__class__( **{ key: -self.__dict__[key] for key in self.__dict__ } )
     
     def __abs__(self):
         return self.__class__( **{ key: abs(self.__dict__[key]) for key in self.__dict__ } )
@@ -160,73 +222,406 @@ class _ObjectVector:
     def __trunc__(self):
         return self.__class__( **{ key: math.trunc(self.__dict__[key]) for key in self.__dict__ } )
 
+    def __getattr__(self, tag) -> tuple | float | int:
+        """
+        Handle access to non-existent attributes.
+
+        This method is called when an attempt is made to access a non-existent attribute of an object.
+        It allows custom logic to be defined for handling such cases.
+
+        Args:
+            tag (str): The name of the requested attribute.
+
+        Returns:
+            tuple: A tuple containing the values of the attributes corresponding to the characters in `tag`.
+            int or float: If `tag` contains only one character.
+
+        Raises:
+            ValueError: If any character in `tag` does not exist as an attribute of the object.
+
+        Example:
+            >>> vec = vector3d(x=0, y=2, z=1) 
+            >>> vec.xz
+            (0, 1)
+            >>> vec.x
+            0
+        """
+
+        response: tuple = ()
+        for symble in tag:
+            if symble not in self.__dict__:
+                raise ValueError("Attribute '%s' not found in '%s'." % (
+                        symble, self.__class__.__name__
+                ))
+            response += ( self.__dict__[symble], )
+        return response 
+
 
     def totuple(self) -> tuple:
-        "Convert vector to tuple\n\n`vector(1,5).totuple > (1,5)`"
-        response = tuple(self.__dict__[key] for key in self.__dict__)
-        return response
+        """
+        Convert the vector object to a tuple.
 
-    @property
-    def copy(self):
-        "Copy vector"
+        Returns:
+            tuple: A tuple representation of the vector.
+
+        Example:
+            >>> vec = Vector2D(3, 5)
+            >>> vec.totuple()
+            (3, 5)
+        """
+        return tuple(self.__dict__[key] for key in self.__dict__)
+    def tonumpy(self, dtype = numpy.float64) -> None:
+        """
+        Convert the vector object to a NumPy array.
+
+        Returns:
+            numpy.ndarray: A NumPy array representation of the vector.
+
+        Example:
+            >>> vec = Vector2D(3, 5)
+            >>> vec.tonumpy()
+            array([3, 5])
+        """
+        return numpy.array(self.totuple(), dtype=dtype)
+    
+    def copy(self) -> "Vector":
+        """
+        Create a shallow copy of the vector object.
+
+        Returns:
+            Vector: A new vector object with the same attribute values.
+
+        Example:
+            >>> vec1 = Vector2D(3, 5)
+            >>> vec2 = vec1.copy()
+            >>> vec2.x
+            3
+            >>> vec2.y
+            5
+        """
         return self.__class__(**self.__dict__)
+    
+    def sum(self) -> float | int:
+        """
+        Compute the sum of all values in the vector.
+
+        Returns:
+            float or int: The sum of all values in the vector.
+
+        Example:
+            >>> vec = Vector2D(3, 5)
+            >>> vec.sum()
+            8
+        """
+        return sum(self)
+
+    def combined_hash(self) -> int:
+        """
+        Computes a combined hash value for the object using XOR operation.
+
+        Args:
+            self: The object for which to compute the combined hash.
+
+        Returns:
+            The combined hash value.
+
+        Example:
+            >>> vec = Vector(...)
+            >>> hash_value = combined_hash(vec)
+        """
+        return self.__hash__() ^ hash(id(self))
 
 
-class Vector2D(_ObjectVector):
-    def __init__(self, x=0.0, y=0.0) -> None:
-        super().__init__(x=x, y=y)
 
-class Vector3D(_ObjectVector):
-    def __init__(self, x=0.0, y=0.0, z=0.0) -> None:
-        super().__init__(x=x, y=y, z=z)
+class Vector2D( ObjectVector ):
+    def __init__(self, x=0.0, y=0.0            ) -> None:
+        super().__init__(x=x, y=y          )
 
-class Vector4D(_ObjectVector):
+class Vector3D( ObjectVector ):
+    def __init__(self, x=0.0, y=0.0, z=0.0     ) -> None:
+        super().__init__(x=x, y=y, z=z     )
+
+class Vector4D( ObjectVector ):
     def __init__(self, x=0.0, y=0.0, z=0.0, w=1) -> None:
         super().__init__(x=x, y=y, z=z, w=w)
 
+def compare_vectors(a: Vector, b: Vector) -> tuple[Vector, Vector]:
+    max_vector, min_vector = (a,b) if len(a) >= len(b) else (b,a)
+    return (max_vector.__class__(*min_vector.totuple()), max_vector)
 
-summ = lambda a: int(a.x+a.y)
+def vec_sum(a: "Vector") -> float | int:
+    """
+    Compute the sum of all values in the vector.
 
-def mul(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
-    "`mul( Vector2D(3, 15), 5 ) -> Vector2D(17, 75)`\n\nmultiplication of a vector by a value"
-    if isinstance(a, Vector2D): return Vector2D(a.x*value, a.y*value)
-    elif isinstance(a, Vector3D): return Vector3D(a.x*value, a.y*value, a.z*value)
+    Returns:
+        float or int: The sum of all values in the vector.
+    
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
 
-def sub(a: "Vector3D | Vector2D", value: int) -> "Vector3D | Vector2D":
-    "`sub( Vector2D(3, 15), 5 ) -> Vector2D(0.6, 3.0)`\n\dividing of a vector by a value"
-    if isinstance(a, Vector2D): return Vector2D(a.x/value, a.y/value)
-    elif isinstance(a, Vector3D): return Vector3D(a.x/value, a.y/value, a.z/value)
+    Example:
+        >>> vec = Vector2D(3, 5)
+        >>> vec.vec_sum()
+        8
+    """
+    if not issubclass(a.__class__, ObjectVector):
+        raise ValueError("a is not a Vector or its subclass")
+    
+    return sum(a)
 
-def dot(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D") -> int:
-    if isinstance(a, Vector2D) and isinstance(b, Vector2D): return a.x*b.x + a.y*b.y
-    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return a.x*b.x + a.y*b.y + a.z*b.z
+def mul(a: "Vector", value: int) -> "Vector":
+    """
+    Multiply a vector by a scalar value.
 
-def length(a: "Vector3D | Vector2D"):
-    "`length( Vector2D(3, 15) ) -> 15.29`"
-    if isinstance(a, Vector2D): return math.sqrt(a.x**2 + a.y**2) 
-    elif isinstance(a, Vector3D): return math.sqrt(a.x**2 + a.y**2 + a.z**2)
+    Args:
+        a (Vector): The vector to be multiplied.
+        value (int): The scalar value to multiply the vector by.
 
-def distance(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
-    "`distance( Vector2D(3, 15), Vector2D(0, 0) ) -> 15.29`"
-    if isinstance(a, Vector2D): return length(a - b)
-    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return length(a - b)
+    Returns:
+        Vector: The result of multiplying the vector by the scalar value.
+    
+        Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
 
-def normalize(a: "Vector3D | Vector2D") -> "Vector2D | Vector3D":
+    Example:
+        >>> vec = Vector(3, 15)
+        >>> mul(vec, 5)
+        Vector(15, 75)
+    """
+    if not issubclass(a.__class__, ObjectVector):
+        raise ValueError("a is not a Vector or its subclass")
+
+    return a.__class__(**{key: a.__dict__[key]*value for key in a.__dict__})
+
+def sub(a: "Vector", value: int) -> "Vector":
+    """
+    Divide a vector by a scalar value.
+
+    Args:
+        a (Vector): The vector to be divided.
+        value (int): The scalar value to divide the vector by.
+
+    Returns:
+        Vector: The result of dividing the vector by the scalar value.
+
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
+
+    Example:
+        >>> vec = Vector(3, 15)
+        >>> sub(vec, 5)
+        Vector(0.6, 3.0)
+    """
+    if not issubclass(a.__class__, ObjectVector):
+        raise ValueError("a is not a Vector or its subclass")
+
+    return a.__class__(**{key: a.__dict__[key]/value for key in a.__dict__} )
+
+def dot(a: "Vector", b: "Vector") -> float:
+    """
+    Compute the dot product of two vectors.
+
+    Args:
+        a (Vector): The first vector.
+        b (Vector): The second vector.
+
+    Returns:
+        float: The dot product of the two vectors.
+
+    Raises:
+        ValueError: If the input `a` or `b` is not a Vector or its subclass.
+
+    Example:
+        >>> vec1 = Vector(3, 5)
+        >>> vec2 = Vector(2, 4)
+        >>> dot(vec1, vec2)
+        26
+    """
+    if not all(issubclass(clas.__class__, ObjectVector) for clas in (a, b)):
+        raise ValueError("a or b is not a Vector or its subclass")
+
+    a,b = compare_vectors(a, b)
+    return sum( a.__dict__[key]*b.__dict__[key] for key in a.__dict__ )
+
+
+
+def length(a: "Vector"):
+    """
+    Compute the length of a vector.
+
+    Args:
+        a (Vector): The vector.
+
+    Returns:
+        float: The length of the vector.
+
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
+
+    Example:
+        >>> vec = Vector(3, 15)
+        >>> length(vec)
+        15.297058540778355
+    """
+    if not issubclass(a.__class__, ObjectVector) :
+        raise ValueError("a is not a Vector or its subclass")
+
+    return math.sqrt( sum([a.__dict__[key]**2 for key in a.__dict__]) )
+
+
+def distance(a: "Vector", b: "Vector"):
+    """
+    Compute the distance between two vectors.
+
+    Args:
+        a (Vector): The first vector.
+        b (Vector): The second vector.
+
+    Returns:
+        float: The distance between the two vectors.
+    
+    Raises:
+        ValueError: If the input `a` or `b` is not a Vector or its subclass.
+
+    Example:
+        >>> vec1 = Vector(3, 15)
+        >>> vec2 = Vector(0, 0)
+        >>> distance(vec1, vec2)
+        15.297058540778355
+    """
+
+    if not all(issubclass(clas.__class__, ObjectVector) for clas in (a, b)):
+        raise ValueError("a or b is not a Vector or its subclass")
+
+    return length(b - a)
+
+def normalize(a: "Vector") -> "Vector":
+    """
+    Normalize a vector to a length of 1 while maintaining its direction.
+
+    Args:
+        a (Vector): The vector to be normalized.
+
+    Returns:
+        Vector: The normalized vector.
+    
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
+
+    Example:
+        >>> vec = Vector(10, 0, 6)
+        >>> normalize(vec)
+        Vector(0.8574929257125441, 0.0, 0.5144957554275265)
+    """
     value = length(a)
-    return a * 1 / value if int(value) != 0 else a
+    return sub(a, value if ( value != 0.0 ) else 1.0)
 
-def reflect(rd: "Vector3D | Vector2D", n: "Vector3D | Vector2D") -> "Vector3D | Vector2D":
+def reflect(rd: "Vector", n: "Vector") -> "Vector":
+    """
+    Compute the reflection of a vector off a surface with a given normal vector.
+
+    Args:
+        rd (Vector): The incident vector.
+        n (Vector): The surface normal vector.
+
+    Returns:
+        Vector: The reflected vector.
+
+    Raises:
+        ValueError: If the input `rd` or `n` is not a Vector or its subclass.
+
+    Example:
+        >>> incident = Vector(1, 1, 1)
+        >>> normal = Vector(0, 1, 0)
+        >>> reflect(incident, normal)
+        Vector(1, -1, 1)
+    """
+    if not all(issubclass(clas.__class__, ObjectVector) for clas in (rd, n)):
+        raise ValueError("a or b is not a Vector or its subclass")
+
     return rd - n * (2 * dot(n, rd))
 
-def angle(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
-    """find angle between vectors \n\n ``angle(vec2d(0,3), vec2d(4,6)) -> 0.8320502943378437``"""
+def angle(a: "Vector", b: "Vector") -> float:
+    """
+        Args:
+        a (Vector): The first vector.
+        b (Vector): The second vector.
+
+    Returns:
+        float: The angle between the two vectors in radians.
+
+    Raises:
+        ValueError: If the input `a` or `b` is not a Vector or its subclass.
+
+    Example:
+        >>> vec1 = Vector(0, 3)
+        >>> vec2 = Vector(4, 6)
+        >>> angle(vec1, vec2)
+        0.8320502943378437
+    """
+    if not all(issubclass(clas.__class__, ObjectVector) for clas in (a, b)):
+        raise ValueError("a or b is not a Vector or its subclass")
+    
     return dot(a, b) / (length(a)*length(b))
+
+def cos(a: "Vector") -> "Vector":
+    """
+    Compute the cosine of each component of a Vector.
+
+    This function takes a Vector object or its subclass as input and computes the cosine of each component
+    of the vector. The resulting vector has the same type as the input vector.
+
+    Args:
+        a (Vector): The input vector.
+
+    Returns:
+        Vector: A new vector with the cosine of each component.
+
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
+
+    Example:
+        >>> v = Vector2D(0.5, 1)
+        >>> cos(v)
+        Vector2D(x=0.8775825618903728, y=0.5403023058681398)
+    """
+    if not issubclass(a.__class__, ObjectVector):
+        raise ValueError("a is not a Vector or its subclass")
+    
+    return a.__class__( **{ key: math.cos(a.__dict__[key]) for key in a.__dict__ } )
+def sin(a: "Vector") -> "Vector":
+    """
+    Compute the sine of each component of a Vector.
+
+    This function takes a Vector object or its subclass as input and computes the sine of each component
+    of the vector. The resulting vector has the same type as the input vector.
+
+    Args:
+        a (Vector): The input vector.
+
+    Returns:
+        Vector: A new vector with the sine of each component.
+
+    Raises:
+        ValueError: If the input `a` is not a Vector or its subclass.
+
+    Example:
+        >>> v = Vector2D(y=1)
+        >>> sin(v)
+        Vector2D(x=0.479425538604203, y=0.8414709848078965)
+    """
+    if not issubclass(a.__class__, ObjectVector):
+        raise ValueError("a is not a Vector or its subclass")
+    
+    return a.__class__( **{ key: math.sin(a.__dict__[key]) for key in a.__dict__ } )
 
 def sign_3(a):
     return (0 < a) - (a < 0)
 def step_3(edge, x):
     return x > edge
 
+def clamp(value: float, min_: float, max_: float) -> float:
+    return max(min(value,max_), min_)
 
 abs3 = lambda a : Vector3D(math.fabs(a.x), math.fabs(a.y), math.fabs(a.z))
 
@@ -240,48 +635,63 @@ def radians_in_degrees(radians: float) -> float:
     radians -> degrees
     radians: math.acos
     """
-    return radians * 180 / math.pi
+    return ( radians * 180 ) / math.pi
 
 def ListToVector(data: list) -> "None | Vector2D | Vector3D":
     if isinstance(data, list) or isinstance(data, tuple):
         if len(data) == 2:
-            x, y    = (x for x in data)
-            return Vector2D(x,y)
+            return Vector2D(*data)
         elif len(data) == 3:
-            x, y, z = (x for x in data)
-            return Vector3D(x,y,z)
-    
+            return Vector3D(*data)
     return None
 
 # def VectorAngle(angle:float) -> Vector2D:
 #     return Vector2D( (WIDTH * math.cos(angle)), 
 #                      (WIDTH * math.sin(angle)) )
 
-def cross(a: Vector3D, b: Vector3D) -> Vector3D: 
-    return Vector3D( a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x * b.y - a.y * b.x )
+def cross(a: "Vector3D", b: "Vector3D") -> "Vector3D": 
+    return Vector3D(a.y * b.z - a.z * b.y, 
+                    a.z * b.x - a.x * b.z, 
+                    a.x * b.y - a.y * b.x )
+
 
 def GetTriangleNormal(a: Vector3D, b: Vector3D, c: Vector3D) -> Vector3D:
     edge1: Vector3D= b - a
     edge2: Vector3D= c - a
     return cross(edge1, edge2)
 
-# def sphInersect(ro, rd, ra) -> list:
-#     b = dot3(ro,rd)
-#     c = dot3(ro,ro) - ra * ra
-#     h = b * b - c
-#     if h < 0.0:
-#         return Vector2D(-1.0,-1.0)
-#     h = math.sqrt(h)
-#     return Vector2D(-b - h, -b + h)
+def sphIntersect(ro: Vector3D, rd: Vector3D, r: int) -> Vector2D:
+    b = dot(ro, rd)
+    c = dot(ro, ro) - r ** 2
+    h = b * b - c
+    
+    if h < 0.0: return Vector2D(-1)
+    
+    h = math.sqrt(h)
+    return Vector2D(-b - h, -b + h)
 
-@overload
-def coutVector(a:Vector2D,b:Vector2D, num:int) -> "True | False":
-    d = math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 )
 
-    return True if d <= num else False
+# def triIntersect(ro: Vector3D, rd: Vector3D, trangle: Triangle3D):
+#     v0, v1, v2 = trangle
 
-@overload
-def coutVector(a: "Vector3D | Vector2D", b: "Vector3D | Vector2D"):
-    if isinstance(a, Vector2D) and isinstance(b, Vector2D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 )
-    elif isinstance(a, Vector3D) and isinstance(b, Vector3D): return math.sqrt( (a.x-b.x)**2 + (a.y-b.y)**2 + (a.z-b.z)**2 )
+#     v1v0 = v1 - v0
+#     v2v0 = v2 - v0
+#     rov0 = ro - v0
+#     n = cross( v1v0, v2v0 )
+#     q = cross( rov0, rd )
+    
+#     rdn = dot( rd, n )
+#     d = (1.0 / rdn) if rdn != 0 else 0
+#     u = d * dot( -q, v2v0 )
+#     v = d * dot(  q, v1v0 )
+#     t = d * dot( -n, rov0 )
+
+#     if ( u < 0.0 ) or ( v < 0.0 ) or ( u+v > 1.0 ) : t = -1.0
+
+#     return Vector3D( t, u, v )
+
+
+def coutVector(a: "Vector", b: "Vector", num: int) -> "True | False":
+    return distance(a, b) <= num
+
 
