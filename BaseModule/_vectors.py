@@ -2,28 +2,26 @@ import numpy
 import math
 
 
-__version__ = 2.0
-
-def is_eq_class(func):
-    def wrepper(self, other):
+__version__ = 2.5
+def check_instance(func):
+    def wrapper(self, other):
         if not isinstance(other, self.__class__):
             raise TypeError( "'%s' not supported please use '%s'" % (type(other).__name__, type(self).__name__) )
-        
         return func(self, other)
-    return wrepper
+    return wrapper
 
-def is_eq_class_v2(*args):
+
+def check_instance_v2(*args):
     def function(func):
-        def wrepper(self, other):
+        def wrapper(self, other):
             if not isinstance(other, (self.__class__, *args)):
                 raise TypeError( "'%s' not supported please use '%s' or %s" % (type(other).__name__, type(self).__name__, ", ".join([arg.__name__ for arg in args])) )
-            
             return func(self, other, isinstance(other, self.__class__))
-        return wrepper
+        return wrapper
     return function
 
 
-class Vector(Exception): pass
+Vector = typing.NewType("Vector", Exception)
 
 class ObjectVector:
     """
@@ -74,153 +72,191 @@ class ObjectVector:
 
     Example usage:
     >>> class Vec3(ObjectVector):
-    ...     def __init__(self, x=0.0, y=0.0, z=0.0)
-    ...         super().__init__(x=x, y=y, z=z)
-    ...
+    ...     x: float = 0.0
+    ...     y: float = 0.0   
+    ...     z: float = 0.0
+
     >>> vec = Vec3(x=1, y=2, z=3)
     >>> vec
-    <module 'Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x7589c5a36c0558b, combined_hash=783914749563017248>
+    <module '__main__:Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x5589c5a36c0558b, combined_hash=783914749563017248>
     >>> vec.sum()
     6
     >>> vec.copy()
-    <module 'Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x7589c5a36c0558b, combined_hash=783914749563017584>
+    <module '__main__:Vec3' {'x': 1, 'y': 2, 'z': 3}, hesh=529344867495597451, hex=0x5589c5a36c0558b, combined_hash=783914749563017584>
     >>> vec.totuple()
-    (1,2,3)
+    (1, 2, 3)
     >>> vec.tonumpy()
     array([1., 2., 3.])
     """
 
-    def __init__(self, **kargs) -> None:
-        self.__dict__ = kargs
+    def __new__(cls, *args, **kwargs):
+        if len(cls.__annotations__) == 0:
+            raise ValueError(f"No annotations to define class fields")
+
+        for key, _type in cls.__annotations__.items():
+
+            if _type not in (float, int):
+                raise TypeError(f"Invalid type for field {key}. Only float or int types are allowed.")
+
+        for key in cls.__annotations__:
+            if cls.__dict__.get(key, True):
+                raise ValueError(f"Please specify a value for the field {key}")
+        return super().__new__(cls)
+    
+    def __init__(self, *args, **kwargs):
+
+        for number, value in enumerate(args):
+            setattr(self, list(self.__annotations__.keys())[number], value)
+
+        for key, value in kwargs.items():
+            if key not in self.__annotations__:
+                raise ValueError(f"Invalid field name: {key}")
+            setattr(self, key, value)
+
+    @property
+    def __get_array(self) -> dict:
+        return {key: getattr(self, key) for key in self.__annotations__}
 
     def __str__(self) -> str:
-        vector_keys = [ f"{key}={self.__dict__[key]}" for key in self.__dict__ ]
-        return "<%s, {%s}>" % (type(self).__name__,  ", ".join(vector_keys))
-
+        return "<%s %s>" % (
+            f"{self.__class__.__module__}:{self.__class__.__name__}",
+            self.__get_array
+        )
+    
     def __repr__(self) -> str:
-        return "<module '%s' %s, hesh=%i, hex=%s, combined_hash=%i>" % (type(self).__name__, self.__dict__, self.__hash__(), hex( self.__hash__() ), self.combined_hash())
+        return "<module '%s' %s, hesh=%i, hex=%s, combined_hash=%i>" % (
+            f"{self.__class__.__module__}:{self.__class__.__name__}", 
+            self.__get_array, 
+            self.__hash__(), 
+            hex( self.__hash__() ), 
+            self.combined_hash()
+            )
     
     def __len__(self) -> int:
-        return len(self.__dict__)
+        return len( self.__annotations__ )
 
-    @is_eq_class
-    def __eq__(self, __o: "ObjectVector") -> bool:
-        for key in __o.__dict__:
-            if key in self.__dict__ and str(__o.__dict__[key]) != str(self.__dict__[key]):
-                return False
-        return True
+    @check_instance
+    def __eq__(self, other: Vector) -> bool:
+        return all( getattr(self, key) == getattr(other, key) for key in other.__annotations__ )
 
     def __hash__(self) -> int:
         return hash( self.totuple() )
+    
+    @check_instance
+    def __lt__(self, other: Vector) -> bool:
+        return all( getattr(self, key) < getattr(other, key) for key in other.__annotations__ )
 
-    @is_eq_class
-    def __lt__(self, other: "ObjectVector") -> bool:
-        return True in [ self.__dict__[key] < other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
+    @check_instance
+    def __gt__(self, other: Vector) -> bool:
+        return all( getattr(self, key) > getattr(other, key) for key in other.__annotations__ )
 
-    @is_eq_class
-    def __gt__(self, other: "ObjectVector") -> bool:
-        return True in [ self.__dict__[key] > other.__dict__[key] for key in other.__dict__ if key in self.__dict__ ]
-
-    @is_eq_class_v2(int, float)
-    def __add__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __add__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] + other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) + getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: self.__dict__[key] + other for key in self.__dict__}
+            response = { key: getattr(self, key) + other for key in self.__annotations__ }
         return self.__class__(**response)
                         
-    def __iadd__(self, other: "ObjectVector | int | float"):
+    def __iadd__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__add__(other)
 
-    @is_eq_class_v2(int, float)
-    def __sub__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __sub__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] - other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) - getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: self.__dict__[key] - other for key in self.__dict__ }
+            response = { key: getattr(self, key) - other for key in self.__annotations__ }
         return self.__class__(**response)
     
-    def __isub__(self, other: "ObjectVector | int | float"):
+    def __isub__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__sub__(other)
     
-    @is_eq_class_v2(int, float)
-    def __mul__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __mul__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] * other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) * getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: self.__dict__[key] * other for key in self.__dict__ }
+            response = { key: getattr(self, key) * other for key in self.__annotations__ }
         return self.__class__(**response)
     
-    def __imul__(self, other: "ObjectVector | int | float"):
+    def __imul__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__mul__(other)
 
-    @is_eq_class_v2(int, float)
-    def __pow__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __pow__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: self.__dict__[key] ** other.__dict__[key] for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) ** getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: self.__dict__[key] ** other for key in self.__dict__ }
+            response = { key: getattr(self, key) ** other for key in self.__annotations__ }
         return self.__class__(**response)
     
-    def __ipow__(self, other: "ObjectVector | int | float"):
+    def __ipow__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__pow__(other)
 
-    @is_eq_class_v2(int, float)
-    def __mod__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __mod__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: (self.__dict__[key] % other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) % getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: (self.__dict__[key] % other) if other != 0.0 else 0 for key in self.__dict__ }
+            response = { key: getattr(self, key) % other for key in self.__annotations__ }
         return self.__class__(**response)
                         
-    def __imod__(self, other: "ObjectVector | int | float"):
+    def __imod__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__mod__(other)
 
-    @is_eq_class_v2(int, float)
-    def __floordiv__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __floordiv__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: (self.__dict__[key] // other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) // getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: (self.__dict__[key] // other) if other != 0.0 else 0 for key in self.__dict__ }
+            response = { key: getattr(self, key) // other for key in self.__annotations__ }
         return self.__class__(**response)
     
-    def __ifloordiv__(self, other: "ObjectVector | int | float"):
+    def __ifloordiv__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__floordiv__(other)
 
-    @is_eq_class_v2(int, float)
-    def __truediv__(self, other: "ObjectVector | int | float", is_main_class):
+    @check_instance_v2(int, float)
+    def __truediv__(self, other: "Vector | int | float", is_main_class):
         if is_main_class:
-            response = { key: (self.__dict__[key] / other.__dict__[key]) if other.__dict__[key] != 0.0 else 0 for key in other.__dict__ if key in self.__dict__ }
+            response = { key: getattr(self, key) / getattr(other, key) for key in other.__annotations__ }
         else:
-            response = { key: (self.__dict__[key] / other) if other != 0.0 else 0 for key in self.__dict__ }
+            response = { key: getattr(self, key) / other for key in self.__annotations__ }
         return self.__class__(**response)
 
-    def __itruediv__(self, other: "ObjectVector | int | float"):
+    def __itruediv__(self, other: "Vector | int | float"):
+        # TODO: Rewriting the code without using that workaround is considered more efficient.
         return self.__truediv__(other)
     
     def __iter__(self):
-        return iter( self.totuple() )
+        return iter( self.__get_array.items() )
 
     def __pos__(self):
-        return self.__class__( **{ key: +self.__dict__[key] for key in self.__dict__ } )
+        return self.__class__( **{ key: +getattr(self, key) for key in self.__annotations__ } )
     
     def __neg__(self):
-        return self.__class__( **{ key: -self.__dict__[key] for key in self.__dict__ } )
+        return self.__class__( **{ key: -getattr(self, key) for key in self.__annotations__ } )
     
     def __abs__(self):
-        return self.__class__( **{ key: abs(self.__dict__[key]) for key in self.__dict__ } )
+        return self.__class__( **{ key: numpy.abs(getattr(self, key)) for key in self.__annotations__ } )
     
     def __round__(self, number: int):
-        return self.__class__( **{ key: round(self.__dict__[key], number) for key in self.__dict__ } )
+        return self.__class__( **{ key: numpy.round(getattr(self, key), number) for key in self.__annotations__ } )
 
     def __floor__(self):
-        return self.__class__( **{ key: math.floor(self.__dict__[key]) for key in self.__dict__ } )
+        return self.__class__( **{ key: numpy.floor(getattr(self, key)) for key in self.__annotations__ } )
 
     def __ceil__(self):
-        return self.__class__( **{ key: math.ceil(self.__dict__[key]) for key in self.__dict__ } )
+        return self.__class__( **{ key: numpy.ceil(getattr(self, key)) for key in self.__annotations__ } )
 
     def __trunc__(self):
-        return self.__class__( **{ key: math.trunc(self.__dict__[key]) for key in self.__dict__ } )
+        return self.__class__( **{ key: numpy.trunc(getattr(self, key)) for key in self.__annotations__ } )
 
     def __getattr__(self, tag) -> tuple | float | int:
         """
@@ -269,7 +305,8 @@ class ObjectVector:
             >>> vec.totuple()
             (3, 5)
         """
-        return tuple(self.__dict__[key] for key in self.__dict__)
+        return tuple( self.__get_array.values() )
+    
     def tonumpy(self, dtype = numpy.float64) -> None:
         """
         Convert the vector object to a NumPy array.
@@ -284,7 +321,7 @@ class ObjectVector:
         """
         return numpy.array(self.totuple(), dtype=dtype)
     
-    def copy(self) -> "Vector":
+    def copy(self) -> Vector:
         """
         Create a shallow copy of the vector object.
 
@@ -299,7 +336,7 @@ class ObjectVector:
             >>> vec2.y
             5
         """
-        return self.__class__(**self.__dict__)
+        return self.__class__(**self.__get_array)
     
     def sum(self) -> float | int:
         """
@@ -313,7 +350,7 @@ class ObjectVector:
             >>> vec.sum()
             8
         """
-        return sum(self)
+        return sum( self.totuple() )
 
     def combined_hash(self) -> int:
         """
@@ -334,18 +371,32 @@ class ObjectVector:
 
 
 class Vector2D( ObjectVector ):
-    def __init__(self, x=0.0, y=0.0            ) -> None:
-        super().__init__(x=x, y=y          )
+    x: float = 0.0
+    y: float = 0.0
 
 class Vector3D( ObjectVector ):
-    def __init__(self, x=0.0, y=0.0, z=0.0     ) -> None:
-        super().__init__(x=x, y=y, z=z     )
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
 
 class Vector4D( ObjectVector ):
-    def __init__(self, x=0.0, y=0.0, z=0.0, w=1) -> None:
-        super().__init__(x=x, y=y, z=z, w=w)
+    x: float = 0.0
+    y: float = 0.0
+    z: float = 0.0
+    w: int   = 1
 
-def compare_vectors(a: Vector, b: Vector) -> tuple[Vector, Vector]:
+def resize_vectors(a: Vector, b: Vector) -> tuple[Vector, Vector]:
+    """
+    Resizes the given vectors to have the same length by adjusting their sizes.
+    
+    Args:
+        a (Vector): The first vector.
+        b (Vector): The second vector.
+        
+    Returns:
+        tuple[Vector, Vector]: A tuple containing the resized vectors, where the first element 
+        is the vector with adjusted size and the second element is the vector with the original size.
+    """
     max_vector, min_vector = (a,b) if len(a) >= len(b) else (b,a)
     return (max_vector.__class__(*min_vector.totuple()), max_vector)
 
@@ -440,7 +491,7 @@ def dot(a: "Vector", b: "Vector") -> float:
     if not all(issubclass(clas.__class__, ObjectVector) for clas in (a, b)):
         raise ValueError("a or b is not a Vector or its subclass")
 
-    a,b = compare_vectors(a, b)
+    a,b = resize_vectors(a, b)
     return sum( a.__dict__[key]*b.__dict__[key] for key in a.__dict__ )
 
 
@@ -507,6 +558,7 @@ def normalize(a: "Vector") -> "Vector":
     
     Raises:
         ValueError: If the input `a` is not a Vector or its subclass.
+        ZeroDivisionError: If length `a` is get zero
 
     Example:
         >>> vec = Vector(10, 0, 6)
@@ -514,7 +566,11 @@ def normalize(a: "Vector") -> "Vector":
         Vector(0.8574929257125441, 0.0, 0.5144957554275265)
     """
     value = length(a)
-    return sub(a, value if ( value != 0.0 ) else 1.0)
+
+    if value == 0.0:
+        raise ZeroDivisionError(f"division by zero, value length get `{value}` with vector `{a}`")
+
+    return sub(a, value)
 
 def reflect(rd: "Vector", n: "Vector") -> "Vector":
     """
