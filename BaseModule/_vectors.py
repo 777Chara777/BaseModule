@@ -70,6 +70,7 @@ class ObjectVector:
     - tonumpy(self, dtype=numpy.float64): Converts the vector to a NumPy array.
     - copy(self): Creates a copy of the vector.
     - sum(self): Returns the sum of all components in the vector.
+    - combined_hash(self): Returns the computes a combined hash value for the object using XOR operation.
 
     Example usage:
     >>> class Vec3(ObjectVector):
@@ -365,7 +366,8 @@ class ObjectVector:
 
         Example:
             >>> vec = Vector(...)
-            >>> hash_value = combined_hash(vec)
+            >>> hash_value = vec.combined_hash()
+            783914749563017584
         """
         return self.__hash__() ^ hash(id(self))
 
