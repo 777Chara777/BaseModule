@@ -1,6 +1,7 @@
 import numpy
 import math
 
+import typing
 
 __version__ = 2.5
 def check_instance(func):
