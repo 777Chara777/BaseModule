@@ -60,7 +60,63 @@ __all__ = (
     "drawLine",
     "cross",
     "memory",
-    "are_crossing")
+    "are_crossing",
+    "calculate_completion_time",
+    "convert_seconds",
+    "format_time"
+    )
+
+def calculate_completion_time(current_iteration, total_iterations, iteration_time):
+    """
+    This function calculates the estimated completion time for a task based on the current iteration, total iterations, and the time taken for each iteration.
+
+    - current_iteration: The current iteration of the task (integer).
+    - total_iterations: The total number of iterations for the task (integer).
+    - iteration_time: The time taken for each iteration (float).
+
+    Returns the estimated completion time in seconds.
+    """
+    return ( iteration_time*(total_iterations-current_iteration) )
+
+
+def convert_seconds(seconds):
+    """
+    This function converts the given number of seconds into days, hours, minutes, and remaining seconds.
+
+    - seconds: The number of seconds to convert (integer).
+
+    Returns a tuple containing the number of days, hours, minutes, and seconds.
+    """
+    minutes = seconds // 60
+    seconds %= 60
+    hours = minutes // 60
+    minutes %= 60
+    days = hours // 24
+    hours %= 24
+    return days, hours, minutes, seconds
+
+def format_time(time_list: "tuple[int, int, int, int]"):
+    """
+    This function formats the time units (days, hours, minutes, seconds) into a human-readable format.
+
+    - time_list: A tuple containing the number of days, hours, minutes, and seconds (in that order).
+
+    Returns a list of formatted time units, excluding units with a value of 0. If all units are 0, only the seconds unit is included.
+    """
+    time_units = ['день', 'час', 'мин', 'сек']
+    formatted_time = []
+
+    for i, unit in enumerate(time_list):
+        if unit != 0:
+            formatted_time.append(f'{int(unit)} {time_units[i]}')
+
+    if len(formatted_time) == 4:
+        formatted_time.pop()
+    
+    if sum(time_list) == 0:
+        formatted_time.append(f"0 {time_units[-1]}")
+
+    return formatted_time
 
 def __system_info():
     return sys.platform

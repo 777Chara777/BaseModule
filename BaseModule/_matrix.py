@@ -1,6 +1,6 @@
-from ._vectors import is_eq_class
+from ._vectors import check_instance
 
-version = 1.0
+__version__ = 1.1
 
 class Matrix:
     def __init__(self, m: int=3, n: int=3, **kargs):
@@ -45,7 +45,7 @@ class Matrix:
 
     # магические элементы
 
-    @is_eq_class
+    @check_instance
     def __mul__(self, other: "Matrix"):
         m = len(self.__matrix_array)  # a: m × n
         n = len(other.__matrix_array) # b: n × k
@@ -62,7 +62,7 @@ class Matrix:
     def __imul__(self, other: "Matrix"):
         return self.__mul__(other)
 
-    @is_eq_class
+    @check_instance
     def __truediv__(self, other: "Matrix"):
         m = len(self.__matrix_array)  # a: m / n
         n = len(other.__matrix_array) # b: n / k
@@ -79,7 +79,7 @@ class Matrix:
     def __itruediv__(self, other: "Matrix"):
         return self.__truediv__(other)
 
-    @is_eq_class
+    @check_instance
     def __floordiv__(self, other: "Matrix"):
         m = len(self.__matrix_array)  # a: m / n
         n = len(other.__matrix_array) # b: n / k
@@ -96,7 +96,7 @@ class Matrix:
     def __ifloordiv__(self, other):
         return self.__floordiv__(other)
 
-    @is_eq_class
+    @check_instance
     def __mod__(self, other: "Matrix"):
         m = len(self.__matrix_array)  # a: m / n
         n = len(other.__matrix_array) # b: n / k
@@ -113,7 +113,7 @@ class Matrix:
     def __imod__(self, other: "Matrix"):
         return self.__mod__(other)
 
-    @is_eq_class
+    @check_instance
     def __add__(self, other: "Matrix"):
         self._eq_size(other)
         m = len(self.__matrix_array    ) # a: m + n
@@ -127,7 +127,7 @@ class Matrix:
     def __iadd__(self, other: "Matrix"):
         return self.__add__(other)
 
-    @is_eq_class
+    @check_instance
     def __sub__(self, other: "Matrix"):
         self._eq_size(other)
         m = len(self.__matrix_array    ) # a: m + n
