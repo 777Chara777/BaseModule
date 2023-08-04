@@ -5,8 +5,8 @@ from ._LogError_V2 import LogError_V2 as logger2
 from ._LogError_V3 import logerror    as logger3
 
 
-from .        import _vectors as vec
-from ._matrix import Matrix   as Matrix
+from .        import _vectors   as vec
+from ._matrix import Matrix     as Matrix
 
 
 __version__ = '3.1.5'

@@ -6,7 +6,7 @@ from ._LogError_V3 import logerror    as logger3
 
 
 from .        import _vectors as vec
-from ._matrix import Matrix   as Matrix
+from ._matrix import Matrix
 
 
 __version__ = '3.1.5'
