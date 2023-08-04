@@ -1,32 +1,29 @@
 from types import TracebackType
 
-from ._TypesList import DEBUG, INFO, WARNING, ERROR, CRITICAL
-from .LOGERRORV3 import _dop as dp
-from .LOGERRORV3 import _trackback as tb
+from .bm_typings.logerror_typing import DEBUG, INFO, WARNING, ERROR, CRITICAL
+from .m_logerror_v3 import _dop as dp, _trackback as tb
 
 from . import BaseModule as bm
-from . import _TypesList as tl
+from .bm_typings import logerror_typing as tl
 
 
 from zipfile import ZipFile
 
-import asyncio
 
 import functools
 import inspect
 import rich
-
+import time
 
 TypesLevels = {
-    'CRITICAL': 40,
-    'ERROR': 30,
-    'WARNING': 20,
-    'INFO': 10,
-    'DEBUG': 0
+    'CRITICAL': {"weight": 40, "function": exit},
+    'ERROR':    {"weight": 30, "function": None   },
+    'WARNING':  {"weight": 20, "function": None   },
+    'INFO':     {"weight": 10, "function": None   },
+    'DEBUG':    {"weight": 0,  "function": None   }
 }
 
-import time
-__version__ = '3.1.5'
+__version__ = '3.1.6'
 __start__ = time.time()
 # _core__instanses: dict={}
 
@@ -244,13 +241,14 @@ class LogError_V3(metaclass=Singleton):
             else:
                 message = __message
             
-        if '--noprint' not in args and TypesLevels[__level] >= TypesLevels[__options["defautlevel"]]:
+        if '--noprint' not in args and TypesLevels[__level]['weight'] >= TypesLevels[__options["defautlevel"]]['weight']:
             send_message = print if __options["color"] is False else rich.print
             send_message(message)
         
         if '--nosave' not in args and __options["dir_file_save"] is not None: savefile(message)
             
-
+        if TypesLevels[__level]['function'] is not None:
+            TypesLevels[__level]['function']()
 
     def debug(self, message, *args, **kargs) -> None:
         self._log("DEBUG", self._core.options, message, *args, **kargs)
@@ -273,12 +271,19 @@ class LogError_V3(metaclass=Singleton):
 
     def catch(
         self,
-        _exception=Exception, *,
-        level = "ERROR" ,
-        reverse = False,
-        onerror = None,
-        message = "An error has occurred",
+        _exception=Exception,
+        reverse   = False, *,
+        level     = "ERROR" ,
+        onerror   = None    ,
+        message   = "An error has occurred",
         ignore_exceptions: tuple= (SystemExit,)):
+
+        """
+        - level = "ERROR" -> level send message
+        - onerror = None -> will be called on error `lambda error : you're function`
+        - message = "An error has occurred" -> error message
+        - ignore_exceptions: tuple= (SystemExit,) -> ignore exeptions
+        """
 
         if callable(_exception) and (
             not inspect.isclass(_exception) or not issubclass(_exception, BaseException)
@@ -300,6 +305,12 @@ class LogError_V3(metaclass=Singleton):
                 
                 if (type_ in ignore_exceptions): # Ignor_Exeptions 
                     self._log("INFO", options_depth, f"Ignor Exceptions: {type_.__name__}")
+                    if onerror is not None:
+                        onerror(value_)
+
+                    if type_ in (SystemExit, KeyboardInterrupt,):
+                        return False
+                    
                     return not reverse
 
                 if (type_ is None) or (not self_._decorator_type):
@@ -307,13 +318,19 @@ class LogError_V3(metaclass=Singleton):
 
                 traceback_request = tb._format_traceback( traceback_ ) 
 
-                traceba = ""
-                for t in traceback_request['Lists_tb']:
-                    traceba += f"{t}\n\n"
 
-                tracebacks_text = f"{message}\n{traceback_request['Hadler_tb']}\n\n{traceba}{traceback_request['ErrorName_tb']}"
+                traceback_description = ""
+                for t in traceback_request['Description']:
+                    traceback_description += f"{t}\n\n"
 
-                self._log(level, options_depth, tracebacks_text)
+                tracebacks_message = "%s\n%s\n\n%s%s" % (
+                    message,
+                    traceback_request['Header'],
+                    traceback_description,
+                    traceback_request['ErrorCaption']
+                )
+                
+                self._log(level, options_depth, tracebacks_message)
 
                 if onerror is not None:
                     onerror(value_)
