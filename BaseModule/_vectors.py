@@ -1,7 +1,11 @@
 import numpy
 import math
 
+# typings
+
 import typing
+
+from .bm_typings import vector_typing as vtyping
 
 __version__ = 2.5
 def check_instance(func):
@@ -23,6 +27,7 @@ def check_instance_v2(*args):
 
 
 Vector = typing.NewType("Vector", Exception)
+_essential_annotations = ('__module__', '__annotations__', '__doc__')
 
 class ObjectVector:
     """
@@ -66,6 +71,7 @@ class ObjectVector:
     - __ceil__(self): Returns a new vector with each component rounded up to the nearest integer.
     - __trunc__(self): Returns a new vector with each component truncated to the nearest integer.
     - __getattr__(self, tag): Retrieves the values of attributes based on the specified tag(s).
+    - iter_with_key(self): Returns an iterator for keys and values of the dictionary.
     - totuple(self): Converts the vector to a tuple.
     - tonumpy(self, dtype=numpy.float64): Converts the vector to a NumPy array.
     - copy(self): Creates a copy of the vector.
@@ -92,17 +98,22 @@ class ObjectVector:
     """
 
     def __new__(cls, *args, **kwargs):
-        if len(cls.__annotations__) == 0:
-            raise ValueError(f"No annotations to define class fields")
+        attr_names = [ ann for ann in _essential_annotations if ann in cls.__annotations__.keys() ] 
+        if len(attr_names) > 0: # 1.5
+            raise vtyping.NameAnnotationsError(f"Cannot override essential annotation '{attr_names[0]}'") 
 
-        for key, _type in cls.__annotations__.items():
+        
+        assert len(cls.__annotations__) != 0, vtyping.NoAnnotationsError(f"No annotations to define class fields") # 1.5
 
-            if _type not in (float, int):
+        for key, _type in cls.__annotations__.items(): # 2
+
+            if isinstance(_type, (float, int)): 
                 raise TypeError(f"Invalid type for field {key}. Only float or int types are allowed.")
 
-        for key in cls.__annotations__:
-            if cls.__dict__.get(key, True):
+            if cls.__dict__.get(key, "$") == "$":
+                # print(cls.__dict__, key, key in cls.__dict__, cls.__dict__[key],cls.__dict__.get(key, True), kwargs, args)
                 raise ValueError(f"Please specify a value for the field {key}")
+            
         return super().__new__(cls)
     
     def __init__(self, *args, **kwargs):
@@ -237,7 +248,7 @@ class ObjectVector:
         return self.__truediv__(other)
     
     def __iter__(self):
-        return iter( self.__get_array.items() )
+        return iter( self.__get_array.values() )
 
     def __pos__(self):
         return self.__class__( **{ key: +getattr(self, key) for key in self.__annotations__ } )
@@ -294,6 +305,25 @@ class ObjectVector:
             response += ( self.__dict__[symble], )
         return response 
 
+    def iter_with_key(self):
+        """
+        Returns an iterator that allows iterating over the keys and corresponding values of the dictionary.
+
+        Returns:
+            iterator: An iterator containing tuples of the form (key, value), representing the elements of the dictionary.
+
+        Example:
+            >>> vec = Vector2D(3, 5)
+            >>> vec.iter_with_key()
+            (('x' = 3), ('y' = 5))
+
+            >>> for key, value in vec.iter_with_key():
+            ...     print(f'{key}, {value}')
+            ... 
+            x, 3
+            y, 5
+        """
+        return iter( self.__get_array.keys() )
 
     def totuple(self) -> tuple:
         """
@@ -445,7 +475,7 @@ def mul(a: "Vector", value: int) -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
 
-    return a.__class__(**{key: a.__dict__[key]*value for key in a.__dict__})
+    return a.__class__(**{key: getattr(a, key, 0)*value for key in a.__dict__})
 
 def sub(a: "Vector", value: int) -> "Vector":
     """
@@ -469,7 +499,7 @@ def sub(a: "Vector", value: int) -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
 
-    return a.__class__(**{key: a.__dict__[key]/value for key in a.__dict__} )
+    return a.__class__(**{key: getattr(a, key, 0)/value for key in a.__dict__} )
 
 def dot(a: "Vector", b: "Vector") -> float:
     """
@@ -495,7 +525,7 @@ def dot(a: "Vector", b: "Vector") -> float:
         raise ValueError("a or b is not a Vector or its subclass")
 
     a,b = resize_vectors(a, b)
-    return sum( a.__dict__[key]*b.__dict__[key] for key in a.__dict__ )
+    return sum( getattr(a, key)*getattr(b, key) for key in a.__dict__ )
 
 
 
@@ -520,7 +550,7 @@ def length(a: "Vector"):
     if not issubclass(a.__class__, ObjectVector) :
         raise ValueError("a is not a Vector or its subclass")
 
-    return math.sqrt( sum([a.__dict__[key]**2 for key in a.__dict__]) )
+    return math.sqrt( sum([getattr(a, key, 0)**2 for key in a.__dict__]) )
 
 
 def distance(a: "Vector", b: "Vector"):
@@ -647,7 +677,7 @@ def cos(a: "Vector") -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
     
-    return a.__class__( **{ key: math.cos(a.__dict__[key]) for key in a.__dict__ } )
+    return a.__class__( **{ key: math.cos(getattr(a, key, 0)) for key in a.__dict__ } )
 def sin(a: "Vector") -> "Vector":
     """
     Compute the sine of each component of a Vector.
@@ -672,7 +702,7 @@ def sin(a: "Vector") -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
     
-    return a.__class__( **{ key: math.sin(a.__dict__[key]) for key in a.__dict__ } )
+    return a.__class__( **{ key: math.sin(getattr(a, key, 0)) for key in a.__dict__ } )
 
 def sign_3(a):
     return (0 < a) - (a < 0)
