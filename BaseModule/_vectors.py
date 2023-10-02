@@ -145,7 +145,6 @@ class ObjectVector:
 
     @property
     def __get_array(self) -> dict:
-        #
         return {key:  float(self.__NumpyArray__[key]) if isinstance(self.__annotations__[key], float ) else int(self.__NumpyArray__[key]) for key in self.__annotations__}
         
     def __str__(self) -> str:
@@ -874,3 +873,5 @@ def sphIntersect(ro: Vector3D, rd: Vector3D, r: int) -> Vector2D:
 
 def coutVector(a: "Vector", b: "Vector", num: int) -> "True | False":
     return distance(a, b) <= num
+
+
