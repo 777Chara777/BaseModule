@@ -874,5 +874,3 @@ def sphIntersect(ro: Vector3D, rd: Vector3D, r: int) -> Vector2D:
 
 def coutVector(a: "Vector", b: "Vector", num: int) -> "True | False":
     return distance(a, b) <= num
-
-
