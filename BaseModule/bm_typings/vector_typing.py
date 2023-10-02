@@ -39,3 +39,23 @@ class NameAnnotationsError(BaseVectorError):
     Attributes:
         message (str): A descriptive error message indicating the reason for the exception.
     """
+
+class CannotDeleteVariable(BaseVectorError):
+    """Error raised when attempting to delete a variable from a Vector.
+
+    This exception is raised when someone attempts to delete a variable from a Vector
+    object. Vector objects are intended to store specific attributes, and trying to
+    delete one of these attributes can disrupt the intended functionality of the Vector.
+
+    To maintain the integrity of the Vector object, variables should not be deleted
+    unless there is a compelling reason to do so. This error serves as a safeguard to
+    prevent accidental or unauthorized deletions of Vector variables.
+
+    The 'CannotDeleteVariable' class is a subclass of 'BaseVectorError,' which is a
+    base class for all vector-related errors in this application. By raising
+    'CannotDeleteVariable' or its subclasses, the application can handle specific vector-
+    related issues separately, allowing for more precise error handling.
+
+    Attributes:
+        message (str): A descriptive error message indicating the reason for the exception.
+    """

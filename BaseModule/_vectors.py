@@ -1,8 +1,9 @@
 import numpy
 import math
+import sys
+
 
 # typings
-
 import typing
 
 from .bm_typings import vector_typing as vtyping
@@ -94,42 +95,59 @@ class ObjectVector:
     >>> vec.totuple()
     (1, 2, 3)
     >>> vec.tonumpy()
-    array([1., 2., 3.])
+    array([1, 2, 3])
     """
-
-    def __new__(cls, *args, **kwargs):
-        attr_names = [ ann for ann in _essential_annotations if ann in cls.__annotations__.keys() ] 
-        if len(attr_names) > 0: # 1.5
+    __slots__ = ('__dict__', '__NumpyArray__', '__annotations__')
+    def __init__(self, *args, **kwargs):
+        # print(self.__annotations__)
+        attr_names = [ ann for ann in _essential_annotations if ann in self.__annotations__.keys() ] 
+        if len(attr_names) > 0: # 0.0
             raise vtyping.NameAnnotationsError(f"Cannot override essential annotation '{attr_names[0]}'") 
-
         
-        assert len(cls.__annotations__) != 0, vtyping.NoAnnotationsError(f"No annotations to define class fields") # 1.5
+        assert len(self.__annotations__) != 0, vtyping.NoAnnotationsError(f"No annotations to define class fields") # 0.0
 
-        for key, _type in cls.__annotations__.items(): # 2
+
+
+        # Check fields
+        for key, _type in self.__annotations__.items(): # 0.0
 
             if isinstance(_type, (float, int)): 
                 raise TypeError(f"Invalid type for field {key}. Only float or int types are allowed.")
-
-            if cls.__dict__.get(key, "$") == "$":
-                # print(cls.__dict__, key, key in cls.__dict__, cls.__dict__[key],cls.__dict__.get(key, True), kwargs, args)
-                raise ValueError(f"Please specify a value for the field {key}")
             
-        return super().__new__(cls)
-    
-    def __init__(self, *args, **kwargs):
+            if key in self.__class__.__dict__.keys():
+                raise ValueError(f"Please remove the value for field {key}")
 
+        # if f"__{self.__class__.__name__}__numpyarray__" in kwargs: # kwargs -> dict with numpy numbers {'x': array(-5.)}
+        #     object.__setattr__(self, "__NumpyArray__", kwargs[f"__{self.__class__.__name__}__numpyarray__"])
+        #     return
+
+        # Create filds numpy array
+        fields = numpy.dtype(list(self.__annotations__.items())) # dtype([('x', '<f8'), ('z', '<f8'), ('w', '<i4')])
+        if f"__{self.__class__.__name__}__numpyarray__" in kwargs:
+            object.__setattr__(self, "__NumpyArray__", numpy.array(tuple( kwargs[f"__{self.__class__.__name__}__numpyarray__"].values() ), dtype=fields))
+            return
+
+        ar = tuple( 0 if isinstance(self.__annotations__[key], int) else 0.0 for key in self.__annotations__ ) # {'x': 1.2, 'z': 0.0, 'w': 1}
+        object.__setattr__(self, "__NumpyArray__", numpy.array(ar, dtype=fields))
+
+
+
+        # Set value in fields
         for number, value in enumerate(args):
+            # print("*args", number, value, list(self.__annotations__.keys())[number])
             setattr(self, list(self.__annotations__.keys())[number], value)
 
         for key, value in kwargs.items():
+            # print("**kwargs", key, value)
             if key not in self.__annotations__:
                 raise ValueError(f"Invalid field name: {key}")
             setattr(self, key, value)
 
     @property
     def __get_array(self) -> dict:
-        return {key: getattr(self, key) for key in self.__annotations__}
-
+        #
+        return {key:  float(self.__NumpyArray__[key]) if isinstance(self.__annotations__[key], float ) else int(self.__NumpyArray__[key]) for key in self.__annotations__}
+        
     def __str__(self) -> str:
         return "<%s %s>" % (
             f"{self.__class__.__module__}:{self.__class__.__name__}",
@@ -150,26 +168,30 @@ class ObjectVector:
 
     @check_instance
     def __eq__(self, other: Vector) -> bool:
-        return all( getattr(self, key) == getattr(other, key) for key in other.__annotations__ )
+        return all( self.__getattr__(key) == other.__getattr__(key) for key in other.__annotations__ )
 
     def __hash__(self) -> int:
         return hash( self.totuple() )
     
     @check_instance
     def __lt__(self, other: Vector) -> bool:
-        return all( getattr(self, key) < getattr(other, key) for key in other.__annotations__ )
+        return length(self) < length(other)
 
     @check_instance
     def __gt__(self, other: Vector) -> bool:
-        return all( getattr(self, key) > getattr(other, key) for key in other.__annotations__ )
+        return length(self) > length(other)
 
     @check_instance_v2(int, float)
     def __add__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) + getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.add(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) + other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.add(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
                         
     def __iadd__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -177,11 +199,15 @@ class ObjectVector:
 
     @check_instance_v2(int, float)
     def __sub__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) - getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.subtract(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) - other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.subtract(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
     
     def __isub__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -189,11 +215,15 @@ class ObjectVector:
     
     @check_instance_v2(int, float)
     def __mul__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) * getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.multiply(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) * other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.multiply(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
     
     def __imul__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -201,11 +231,15 @@ class ObjectVector:
 
     @check_instance_v2(int, float)
     def __pow__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) ** getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.power(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) ** other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.power(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
     
     def __ipow__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -213,11 +247,15 @@ class ObjectVector:
 
     @check_instance_v2(int, float)
     def __mod__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) % getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.remainder(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) % other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                result_data[field] = numpy.remainder(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
                         
     def __imod__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -225,11 +263,21 @@ class ObjectVector:
 
     @check_instance_v2(int, float)
     def __floordiv__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) // getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                if other.__NumpyArray__[field] == 0:
+                    result_data[field] = other.__NumpyArray__[field]
+                    continue
+                result_data[field] = numpy.floor_divide(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) // other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                if other == 0.0:
+                    result_data[field] = other
+                    continue
+                result_data[field] = numpy.floor_divide(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
     
     def __ifloordiv__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -237,11 +285,21 @@ class ObjectVector:
 
     @check_instance_v2(int, float)
     def __truediv__(self, other: "Vector | int | float", is_main_class):
+        result_data = numpy.empty_like(self.__NumpyArray__)
         if is_main_class:
-            response = { key: getattr(self, key) / getattr(other, key) for key in other.__annotations__ }
+            for field in self.__NumpyArray__.dtype.names:
+                if other.__NumpyArray__[field] == 0:
+                    result_data[field] = other.__NumpyArray__[field]
+                    continue
+                result_data[field] = numpy.divide(self.__NumpyArray__[field], other.__NumpyArray__[field])
         else:
-            response = { key: getattr(self, key) / other for key in self.__annotations__ }
-        return self.__class__(**response)
+            for field in self.__NumpyArray__.dtype.names:
+                if other == 0.0:
+                    result_data[field] = other
+                    continue
+                result_data[field] = numpy.divide(self.__NumpyArray__[field], other)
+
+        return self.__class__( **{ f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
 
     def __itruediv__(self, other: "Vector | int | float"):
         # TODO: Rewriting the code without using that workaround is considered more efficient.
@@ -251,25 +309,51 @@ class ObjectVector:
         return iter( self.__get_array.values() )
 
     def __pos__(self):
-        return self.__class__( **{ key: +getattr(self, key) for key in self.__annotations__ } )
+        result_data = numpy.empty_like(self.__NumpyArray__)
+        for field in self.__NumpyArray__.dtype.names: result_data[field] = +self.__NumpyArray__[field]
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
     
     def __neg__(self):
-        return self.__class__( **{ key: -getattr(self, key) for key in self.__annotations__ } )
-    
+        result_data = numpy.empty_like(self.__NumpyArray__)
+        for field in self.__NumpyArray__.dtype.names: result_data[field] = -self.__NumpyArray__[field]
+        return self.__class__(**{f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}})
+
     def __abs__(self):
-        return self.__class__( **{ key: numpy.abs(getattr(self, key)) for key in self.__annotations__ } )
+        result_data = numpy.empty_like(self.__NumpyArray__)
+        for field in self.__NumpyArray__.dtype.names:
+            result_data[field] = numpy.abs(self.__NumpyArray__[field])
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
+        # return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: numpy.abs(self.__getattr__(key)) for key in self.__annotations__ }} )
     
     def __round__(self, number: int):
-        return self.__class__( **{ key: numpy.round(getattr(self, key), number) for key in self.__annotations__ } )
+        result_data = numpy.empty_like(self.__NumpyArray__)
+        for field in self.__NumpyArray__.dtype.names: result_data[field] = numpy.round(self.__NumpyArray__[field], number)
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: result_data[key] for key in result_data.dtype.names}} )
+        # return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: numpy.round(self.__getattr__(key), number) for key in self.__annotations__ }} )
 
     def __floor__(self):
-        return self.__class__( **{ key: numpy.floor(getattr(self, key)) for key in self.__annotations__ } )
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: numpy.floor(self.__getattr__(key)) for key in self.__annotations__ }} )
 
     def __ceil__(self):
-        return self.__class__( **{ key: numpy.ceil(getattr(self, key)) for key in self.__annotations__ } )
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: numpy.ceil(self.__getattr__(key)) for key in self.__annotations__ }} )
 
     def __trunc__(self):
-        return self.__class__( **{ key: numpy.trunc(getattr(self, key)) for key in self.__annotations__ } )
+        return self.__class__( **{f"__{self.__class__.__name__}__numpyarray__": {key: numpy.trunc(self.__getattr__(key)) for key in self.__annotations__ }} )
+    
+    def __delattr__(self, tag) -> None:
+        if tag in self.__annotations__.keys():
+            raise vtyping.CannotDeleteVariable(f"Cannot delete variable '{tag}'")
+        if tag not in self.__dict__:
+            raise NameError(f"Name '{tag}' is not defined")
+        del self.__dict__[tag]
+
+    def __setattr__(self, tag, value) -> None:
+        if tag in self.__annotations__.keys():
+            if not isinstance(value, (int, float, numpy.ndarray)):
+                raise TypeError(f"Invalid type for field '{tag}'. Only {self.__annotations__[tag].__name__} types are allowed.")
+            self.__NumpyArray__[tag] = self.__annotations__[tag](value)
+        
+        else: object.__setattr__(self, tag, value)
 
     def __getattr__(self, tag) -> tuple | float | int:
         """
@@ -295,15 +379,19 @@ class ObjectVector:
             >>> vec.x
             0
         """
+        if len(tag) == 1 and tag in self.__annotations__.keys():
+            return self.__NumpyArray__[tag]
 
         response: tuple = ()
         for symble in tag:
-            if symble not in self.__dict__:
+            # if not hasattr(self, symble):
+            if symble not in self.__annotations__.keys():
                 raise ValueError("Attribute '%s' not found in '%s'." % (
                         symble, self.__class__.__name__
                 ))
-            response += ( self.__dict__[symble], )
-        return response 
+            response += ( self.__NumpyArray__[symble], )
+            
+        return response
 
     def iter_with_key(self):
         """
@@ -323,7 +411,7 @@ class ObjectVector:
             x, 3
             y, 5
         """
-        return iter( self.__get_array.keys() )
+        return iter( self.__get_array.items() )
 
     def totuple(self) -> tuple:
         """
@@ -337,9 +425,9 @@ class ObjectVector:
             >>> vec.totuple()
             (3, 5)
         """
-        return tuple( self.__get_array.values() )
+        return self.__NumpyArray__.tolist()
     
-    def tonumpy(self, dtype = numpy.float64) -> None:
+    def tonumpy(self) -> None:
         """
         Convert the vector object to a NumPy array.
 
@@ -351,7 +439,7 @@ class ObjectVector:
             >>> vec.tonumpy()
             array([3, 5])
         """
-        return numpy.array(self.totuple(), dtype=dtype)
+        return self.__NumpyArray__.copy()
     
     def copy(self) -> Vector:
         """
@@ -404,19 +492,22 @@ class ObjectVector:
 
 
 class Vector2D( ObjectVector ):
-    x: float = 0.0
-    y: float = 0.0
+    "x: float\ny: flaot"
+    x: float
+    y: float
 
 class Vector3D( ObjectVector ):
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
+    "x: float\ny: flaot\nz: float"
+    x: float
+    y: float
+    z: float
 
 class Vector4D( ObjectVector ):
-    x: float = 0.0
-    y: float = 0.0
-    z: float = 0.0
-    w: int   = 1
+    "x: float\ny: flaot\nz: float\nw: int"
+    x: float
+    y: float
+    z: float
+    w: int  
 
 def resize_vectors(a: Vector, b: Vector) -> tuple[Vector, Vector]:
     """
@@ -451,7 +542,7 @@ def vec_sum(a: "Vector") -> float | int:
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
     
-    return sum(a)
+    return numpy.sum(a)
 
 def mul(a: "Vector", value: int) -> "Vector":
     """
@@ -475,7 +566,8 @@ def mul(a: "Vector", value: int) -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
 
-    return a.__class__(**{key: getattr(a, key, 0)*value for key in a.__dict__})
+    return a.__class__( **{f"__{a.__class__.__name__}__numpyarray__": {key: a.__getattr__(key)*value for key in a.__annotations__ }} )
+
 
 def sub(a: "Vector", value: int) -> "Vector":
     """
@@ -499,7 +591,7 @@ def sub(a: "Vector", value: int) -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
 
-    return a.__class__(**{key: getattr(a, key, 0)/value for key in a.__dict__} )
+    return a.__class__( **{f"__{a.__class__.__name__}__numpyarray__": {key: a.__getattr__(key)/value for key in a.__annotations__ }} )
 
 def dot(a: "Vector", b: "Vector") -> float:
     """
@@ -525,7 +617,7 @@ def dot(a: "Vector", b: "Vector") -> float:
         raise ValueError("a or b is not a Vector or its subclass")
 
     a,b = resize_vectors(a, b)
-    return sum( getattr(a, key)*getattr(b, key) for key in a.__dict__ )
+    return numpy.sum( a.__getattr__(key)*b.__getattr__(key) for key in a.__annotations__ )
 
 
 
@@ -547,10 +639,10 @@ def length(a: "Vector"):
         >>> length(vec)
         15.297058540778355
     """
-    if not issubclass(a.__class__, ObjectVector) :
+    if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
 
-    return math.sqrt( sum([getattr(a, key, 0)**2 for key in a.__dict__]) )
+    return numpy.sqrt( numpy.sum([a.__getattr__(key)**2 for key in a.__annotations__]) )
 
 
 def distance(a: "Vector", b: "Vector"):
@@ -702,7 +794,7 @@ def sin(a: "Vector") -> "Vector":
     if not issubclass(a.__class__, ObjectVector):
         raise ValueError("a is not a Vector or its subclass")
     
-    return a.__class__( **{ key: math.sin(getattr(a, key, 0)) for key in a.__dict__ } )
+    return a.__class__( **{f"__{a.__class__.__name__}__numpyarray__": {key: numpy.sin(a.__getattr__(key))for key in a.__annotations__ }} )
 
 def sign_3(a):
     return (0 < a) - (a < 0)
